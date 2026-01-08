@@ -5,6 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>✨ 數字小魔手：資源班數學魔法屋</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // 關鍵補丁：防止在 GitHub Pages 等環境因為找不到 process 而導致白畫面
+      window.process = {
+        env: {
+          API_KEY: "" 
+        }
+      };
+      
+      // 捕捉全局錯誤並顯示，避免「白花花一片」卻不知道原因
+      window.onerror = function(msg, url, line, col, error) {
+        const root = document.getElementById('root');
+        if (root && root.innerHTML === "") {
+          root.innerHTML = `<div style="padding: 20px; color: #ef4444; font-family: sans-serif; text-align: center;">
+            <h2 style="font-size: 24px;">哎呀！魔法屋暫時無法開啟</h2>
+            <p style="color: #64748b;">錯誤原因：${msg}</p>
+            <p style="font-size: 14px; margin-top: 10px;">請嘗試重新整理頁面，或檢查網路連線。</p>
+          </div>`;
+        }
+        return false;
+      };
+    </script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
       
@@ -27,23 +48,47 @@
       .custom-scrollbar::-webkit-scrollbar { width: 6px; }
       .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
       .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      
+      #loading-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: white; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; z-index: 9999;
+        transition: opacity 0.5s;
+      }
     </style>
     <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom": "https://esm.sh/react-dom@^19.2.3",
-    "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client",
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/"
-  }
-}
-</script>
+    {
+      "imports": {
+        "react": "https://esm.sh/react@^19.2.3",
+        "react-dom": "https://esm.sh/react-dom@^19.2.3",
+        "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client",
+        "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+        "react/": "https://esm.sh/react@^19.2.3/"
+      }
+    }
+    </script>
   </head>
   <body>
+    <div id="loading-overlay">
+      <div style="width: 40px; height: 40px; border: 4px solid #3b82f6; border-top-color: transparent; border-radius: 50%; animate: spin 1s linear infinite;" class="animate-spin"></div>
+      <p style="margin-top: 16px; color: #1e3a8a; font-weight: bold;">正在載入魔法屋...</p>
+    </div>
     <div id="root"></div>
-    <!-- 使用 ./ 確保 GitHub Pages 子目錄路徑正確 -->
-    <script type="module" src="./index.tsx"></script>
+    <script type="module">
+      import "./index.tsx";
+      // 當 index.tsx 載入完成後隱藏 Loading 畫面
+      window.addEventListener('load', () => {
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) {
+          overlay.style.opacity = '0';
+          setTimeout(() => overlay.remove(), 500);
+        }
+      });
+    </script>
+    <style>
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .animate-spin { animation: spin 1s linear infinite; }
+    </style>
   </body>
 </html>

@@ -1,6 +1,13 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { SelectionParams, Chapter, HandoutContent, HomeworkConfig, HomeworkContent } from '../types';
+
+const getSafeApiKey = () => {
+  try {
+    return process.env.API_KEY || "";
+  } catch (e) {
+    return "";
+  }
+};
 
 const SYSTEM_INSTRUCTION = `你是一位專業國小資源班老師，擅長將複雜數學概念視覺化且口語化。
 請嚴格遵守 JSON 格式輸出。
@@ -24,8 +31,9 @@ const SYSTEM_INSTRUCTION = `你是一位專業國小資源班老師，擅長將�
    - 難：數字 1000 以內或多步驟運算。`;
 
 export const fetchChapters = async (params: SelectionParams): Promise<Chapter[]> => {
-  // 每次執行都新建實體，確保金鑰最新
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = getSafeApiKey();
+  const ai = new GoogleGenAI({ apiKey });
+  
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: `請檢索 ${params.year}學年度 ${params.publisher}版 ${params.grade}${params.semester} 數學課本目錄。請輸出 JSON 陣列。`,
@@ -58,7 +66,9 @@ export const fetchChapters = async (params: SelectionParams): Promise<Chapter[]>
 };
 
 export const generateHandoutFromText = async (params: SelectionParams, chapter: string, subChapter: string): Promise<HandoutContent> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = getSafeApiKey();
+  const ai = new GoogleGenAI({ apiKey });
+  
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: `單元：${chapter}-${subChapter}。難易度：${params.difficulty}。
@@ -110,7 +120,9 @@ export const generateHandoutFromText = async (params: SelectionParams, chapter: 
 };
 
 export const generateHomework = async (params: SelectionParams, chapter: string, subChapter: string, config: HomeworkConfig): Promise<HomeworkContent> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = getSafeApiKey();
+  const ai = new GoogleGenAI({ apiKey });
+  
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: `單元：${chapter}-${subChapter}。難易度：${config.difficulty}。產出計算題${config.calculationCount}題、應用題${config.wordProblemCount}題。
