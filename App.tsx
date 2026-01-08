@@ -20,15 +20,18 @@ const App: React.FC = () => {
   const [isSidebarVisible, setIsSidebarVisible] = useState(window.innerWidth > 1024);
   const [hasTriedFetch, setHasTriedFetch] = useState(false);
 
-  // 確保載入時隱藏原生 overlay
   useEffect(() => {
-    const overlay = document.getElementById('loading-overlay');
-    if (overlay) {
-      setTimeout(() => {
+    // 雙重保險：確保在 App 載入後移除外層 HTML 的 Loading 遮罩
+    const hideOverlay = () => {
+      const overlay = document.getElementById('loading-overlay');
+      if (overlay) {
         overlay.style.opacity = '0';
-        setTimeout(() => overlay.remove(), 500);
-      }, 1000);
-    }
+        setTimeout(() => {
+          if (overlay.parentNode) overlay.remove();
+        }, 500);
+      }
+    };
+    hideOverlay();
   }, []);
 
   const handleParamsSubmit = async (newParams: SelectionParams) => {
@@ -44,11 +47,11 @@ const App: React.FC = () => {
       const data = await fetchChapters(newParams);
       setChapters(data);
       if (data.length === 0) {
-        setError("目前無法自動搜尋目錄（可能是網路連線問題）。請直接在下方「手動輸入」單元名稱製作講義。");
+        setError("目前無法自動搜尋目錄（可能是網路繁忙）。請直接在下方「手動輸入」單元名稱製作講義。");
       }
     } catch (err: any) {
       console.error(err);
-      setError("連線不穩定，請嘗試直接「手動輸入」單元名稱製作。");
+      setError("連線不穩定，請嘗試直接「手動輸入」單元名稱。");
     } finally {
       setLoading(false);
       setHasTriedFetch(true);
@@ -65,7 +68,7 @@ const App: React.FC = () => {
       const content = await generateHandoutFromText(params!, chapterTitle, subChapter);
       setHandout(content);
     } catch (err) {
-      setError("製作講義時發生錯誤，請檢查網路後重新嘗試。");
+      setError("製作講義時發生錯誤，請重新點擊嘗試。");
     } finally {
       setLoading(false);
     }
@@ -94,32 +97,32 @@ const App: React.FC = () => {
 
       <div className={`grid grid-cols-1 ${isSidebarVisible ? 'lg:grid-cols-12' : 'lg:grid-cols-1'} gap-8 no-print`}>
         {isSidebarVisible && (
-          <div className="lg:col-span-4 space-y-6 animate-in slide-in-from-left duration-500">
+          <div className="lg:col-span-4 space-y-6">
             <SelectionForm onSubmit={handleParamsSubmit} isLoading={loading} />
             {chapters.length > 0 && <ChapterSelector chapters={chapters} onSelect={handleGenerateHandout} isLoading={loading} />}
-            {error && <div className="p-4 bg-rose-50 text-rose-600 rounded-xl font-bold text-sm border border-rose-100 mb-4 shadow-sm">{error}</div>}
+            {error && <div className="p-4 bg-rose-50 text-rose-600 rounded-xl font-bold text-sm border border-rose-100 mb-4">{error}</div>}
             {!loading && (hasTriedFetch || chapters.length > 0 || error) && <ManualUnitInput onGenerate={handleGenerateHandout} isLoading={loading} />}
           </div>
         )}
 
-        <div className={`${isSidebarVisible ? 'lg:col-span-8' : 'w-full'} transition-all duration-500`}>
-          <div className="flex gap-2 mb-4 no-print items-center justify-between">
-            <button onClick={() => setIsSidebarVisible(!isSidebarVisible)} className="bg-white border-2 border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-black shadow-sm active:scale-95 hover:bg-slate-50 transition-all">
+        <div className={`${isSidebarVisible ? 'lg:col-span-8' : 'w-full'} transition-all`}>
+          <div className="flex gap-2 mb-4 no-print">
+            <button onClick={() => setIsSidebarVisible(!isSidebarVisible)} className="bg-white border-2 border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-sm font-black shadow-sm active:scale-95 transition-all hover:bg-slate-50">
               {isSidebarVisible ? '👈 隱藏選單' : '👉 顯示選單'}
             </button>
             {(handout || homework) && (
               <div className="flex bg-slate-200 rounded-xl p-1 shadow-inner">
-                <button onClick={() => setViewMode('handout')} className={`px-6 py-1.5 rounded-lg text-sm font-black transition ${viewMode === 'handout' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}>核心講義</button>
+                <button onClick={() => setViewMode('handout')} className={`px-6 py-1.5 rounded-lg text-sm font-black transition ${viewMode === 'handout' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-50'}`}>核心講義</button>
                 <button onClick={() => setViewMode('homework')} className={`px-6 py-1.5 rounded-lg text-sm font-black transition ${viewMode === 'homework' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500'}`}>隨堂練習</button>
               </div>
             )}
           </div>
 
           {loading ? (
-            <div className="h-[600px] flex flex-col items-center justify-center bg-white rounded-[3rem] border-2 border-slate-100 shadow-sm animate-pulse">
+            <div className="h-[600px] flex flex-col items-center justify-center bg-white rounded-[3rem] border-2 border-slate-100 shadow-sm">
               <div className="w-16 h-16 border-8 border-blue-600 border-t-transparent rounded-full animate-spin mb-8"></div>
               <p className="text-3xl font-black text-slate-800">正在施展數學魔法...</p>
-              <p className="text-slate-400 mt-4 font-bold">這可能需要 5-10 秒鐘時間</p>
+              <p className="text-slate-400 mt-4 font-bold">這可能需要幾秒鐘時間</p>
             </div>
           ) : viewMode === 'handout' && handout ? (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -131,10 +134,9 @@ const App: React.FC = () => {
               <HomeworkViewer content={homework} params={params!} />
             </div>
           ) : (
-            <div className="h-[600px] flex flex-col items-center justify-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200 text-slate-400 group">
-              <span className="text-8xl mb-8 opacity-20 group-hover:opacity-40 transition-opacity duration-500">🪄</span>
+            <div className="h-[600px] flex flex-col items-center justify-center bg-white rounded-[3rem] border-2 border-dashed border-slate-200 text-slate-400">
+              <span className="text-8xl mb-8 opacity-20">🪄</span>
               <p className="text-xl font-bold">請先從左側選擇出版社與年級</p>
-              <p className="text-sm mt-2 opacity-50">確認設定後魔法就會開始！</p>
             </div>
           )}
         </div>

@@ -49,7 +49,6 @@ const HandoutViewer: React.FC<Props> = ({ content, params }) => {
   const highlightSymbols = (text: string) => {
     if (!text) return "";
     if (!settings.colorCoding) return text;
-    // 為數學符號增加前後空白，避免擠在一起
     return text.replace(/(\+|\-|\×|\÷|\=)/g, '<span class="text-rose-600 font-black px-2 mx-1">$1</span>');
   };
 
@@ -57,12 +56,12 @@ const HandoutViewer: React.FC<Props> = ({ content, params }) => {
     <div className="bg-white p-10 rounded-3xl shadow-xl border border-slate-200 min-h-[600px] relative">
       <div className="no-print mb-8 bg-blue-50/50 p-6 rounded-2xl border border-blue-100 flex items-center justify-between">
         <div className="flex gap-4">
-          <button onClick={() => updateSetting('colorCoding')} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 transition-all font-bold text-sm ${settings.colorCoding ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-500'}`}>
+          <button onClick={() => updateSetting('colorCoding')} className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 transition-all font-bold text-sm ${settings.colorCoding ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
             🎨 符號醒目色
           </button>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">🖨️ 列印講義</button>
+          <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg hover:bg-slate-800 transition-all">🖨️ 列印講義</button>
         </div>
       </div>
 
