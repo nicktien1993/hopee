@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { SelectionParams, Chapter, HandoutContent, HomeworkContent, HomeworkConfig } from './types';
-import { fetchChapters, generateHandoutFromText, generateHomework } from './services/geminiService';
-import SelectionForm from './components/SelectionForm';
-import ChapterSelector from './components/ChapterSelector';
-import HandoutViewer from './components/HandoutViewer';
-import HomeworkViewer from './components/HomeworkViewer';
-import HomeworkConfigSection from './components/HomeworkConfigSection';
-import ManualUnitInput from './components/ManualUnitInput';
+import { SelectionParams, Chapter, HandoutContent, HomeworkContent, HomeworkConfig } from './types.ts';
+import { fetchChapters, generateHandoutFromText, generateHomework } from './services/geminiService.ts';
+import SelectionForm from './components/SelectionForm.tsx';
+import ChapterSelector from './components/ChapterSelector.tsx';
+import HandoutViewer from './components/HandoutViewer.tsx';
+import HomeworkViewer from './components/HomeworkViewer.tsx';
+import HomeworkConfigSection from './components/HomeworkConfigSection.tsx';
+import ManualUnitInput from './components/ManualUnitInput.tsx';
 
 const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -21,17 +21,14 @@ const App: React.FC = () => {
   const [hasTriedFetch, setHasTriedFetch] = useState(false);
 
   useEffect(() => {
-    // 雙重保險：確保在 App 載入後移除外層 HTML 的 Loading 遮罩
-    const hideOverlay = () => {
-      const overlay = document.getElementById('loading-overlay');
-      if (overlay) {
+    // App 掛載後強制關閉外層 Loading（保險機制）
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) {
+      setTimeout(() => {
         overlay.style.opacity = '0';
-        setTimeout(() => {
-          if (overlay.parentNode) overlay.remove();
-        }, 500);
-      }
-    };
-    hideOverlay();
+        setTimeout(() => overlay.remove(), 500);
+      }, 300);
+    }
   }, []);
 
   const handleParamsSubmit = async (newParams: SelectionParams) => {
@@ -47,11 +44,11 @@ const App: React.FC = () => {
       const data = await fetchChapters(newParams);
       setChapters(data);
       if (data.length === 0) {
-        setError("目前無法自動搜尋目錄（可能是網路繁忙）。請直接在下方「手動輸入」單元名稱製作講義。");
+        setError("目前無法自動搜尋目錄。請直接在下方「手動輸入」單元名稱製作講義。");
       }
     } catch (err: any) {
       console.error(err);
-      setError("連線不穩定，請嘗試直接「手動輸入」單元名稱。");
+      setError("服務連線超時，請嘗試直接「手動輸入」單元名稱。");
     } finally {
       setLoading(false);
       setHasTriedFetch(true);
