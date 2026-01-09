@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>✨ 數字小魔手：資源班數學魔法屋</title>
     <script>
-      // 1. 初始化環境變數
       window.process = { env: { API_KEY: "" } };
-      
-      // 2. 系統診斷日誌系統
       function logStatus(msg, isError = false) {
         console.log(`[System] ${msg}`);
         const debugDiv = document.getElementById('debug-log');
@@ -16,82 +13,29 @@
           const p = document.createElement('div');
           p.style.color = isError ? '#e11d48' : '#1e40af';
           p.style.padding = '4px 0';
-          p.style.borderBottom = '1px solid #f1f5f9';
           p.textContent = (isError ? '❌ ' : 'ℹ️ ') + msg;
           debugDiv.appendChild(p);
           if (isError) debugDiv.style.display = 'block';
         }
       }
-
-      // 監聽資源載入失敗
-      window.addEventListener('error', (e) => {
-        if (e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK')) {
-          const url = e.target.src || e.target.href;
-          logStatus(`檔案載入失敗：${url}`, true);
-          if (url && url.endsWith('.tsx')) {
-            logStatus("提示：瀏覽器無法直接執行 .tsx。如果您是在靜態網頁空間（如 GitHub Pages），請確保已透過 Vite 或相關工具進行編譯。", true);
-          }
-        }
-      }, true);
-
-      // 捕捉執行時期腳本錯誤
-      window.onerror = (m, u, l) => logStatus(`JS 錯誤: ${m} (${u}:${l})`, true);
-
-      // 控制遮罩顯示
       window.hideLoadingOverlay = function() {
         const overlay = document.getElementById('loading-overlay');
         if (overlay) {
           overlay.style.opacity = '0';
-          overlay.style.pointerEvents = 'none';
-          setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 600);
+          setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 500);
         }
       };
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Babel 確保靜態環境能執行 TSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
-      body { 
-        font-family: 'Noto Sans TC', sans-serif; 
-        background-color: #f8fafc; 
-        margin: 0; 
-        -webkit-font-smoothing: antialiased;
-      }
-      #loading-overlay { 
-        position: fixed; 
-        inset: 0; 
-        background: white; 
-        display: flex; 
-        flex-direction: column; 
-        align-items: center; 
-        justify-content: center; 
-        z-index: 9999; 
-        transition: opacity 0.6s ease; 
-      }
-      .spinner { 
-        width: 60px; 
-        height: 60px; 
-        border: 6px solid #f3f4f6; 
-        border-top: 6px solid #2563eb; 
-        border-radius: 50%; 
-        animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite; 
-      }
+      @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+      body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; margin: 0; }
+      #loading-overlay { position: fixed; inset: 0; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; }
+      .spinner { width: 50px; height: 50px; border: 5px solid #f3f4f6; border-top: 5px solid #2563eb; border-radius: 50%; animation: spin 1s linear infinite; }
       @keyframes spin { to { transform: rotate(360deg); } }
-      #debug-log { 
-        position: fixed; 
-        bottom: 0; 
-        left: 0; 
-        right: 0; 
-        background: #fff; 
-        border-top: 2px solid #e2e8f0; 
-        padding: 16px; 
-        font-family: monospace; 
-        font-size: 12px; 
-        max-height: 200px; 
-        overflow-y: auto; 
-        z-index: 10000; 
-        display: none; 
-        box-shadow: 0 -10px 15px -3px rgba(0,0,0,0.1); 
-      }
+      #debug-log { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #e2e8f0; padding: 10px; font-family: monospace; font-size: 11px; max-height: 100px; overflow-y: auto; z-index: 10000; display: none; }
       @media print { .no-print { display: none !important; } }
     </style>
     <script type="importmap">
@@ -111,12 +55,11 @@
   <body>
     <div id="loading-overlay">
       <div class="spinner"></div>
-      <p style="margin-top: 24px; font-weight: 900; color: #1e3a8a; font-size: 1.25rem; letter-spacing: 0.05em;">🪄 正在開啟數學魔法門...</p>
+      <p style="margin-top: 20px; font-weight: 900; color: #1e3a8a;">🪄 正在編織數學魔法...</p>
     </div>
-    
     <div id="root"></div>
     <div id="debug-log"><strong>🛠️ 系統診斷報告：</strong><br></div>
-
-    <script type="module" src="index.tsx"></script>
+    <!-- 加上 data-type="module" 配合 Babel -->
+    <script type="text/babel" data-type="module" src="index.tsx"></script>
   </body>
 </html>
