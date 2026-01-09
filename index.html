@@ -6,8 +6,8 @@
     <title>✨ 數字小魔手：資源班數學魔法屋</title>
     
     <script>
-      // ⚠️ 重要：移除原本手動定義 window.process 的程式碼
-      // 系統會自動注入 process.env.API_KEY，手動定義 "" 會導致金鑰失效
+      // 確保在瀏覽器環境中 process 變數存在，避免 "process is not defined" 錯誤
+      window.process = window.process || { env: { API_KEY: "" } };
       
       // 全局錯誤捕獲 (用於診斷)
       window.onerror = function(msg, url, lineNo, columnNo, error) {
@@ -128,10 +128,8 @@
         const handleQuery = async () => {
           setLoading(true);
           try {
-            const apiKey = process.env.API_KEY;
-            if (!apiKey) throw new Error("環境中未偵測到 API Key，請確認平台設定。");
-            
-            const ai = new GoogleGenAI({ apiKey });
+            // 嚴格遵守規範：直接讀取 process.env.API_KEY
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             const response = await ai.models.generateContent({
               model: 'gemini-3-flash-preview',
               contents: `列出 ${params.year}學年度 ${params.publisher}版 國小數學 ${params.grade}${params.semester} 的課程單元目錄。`,
@@ -164,7 +162,7 @@
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             const response = await ai.models.generateContent({
               model: 'gemini-3-pro-preview',
-              contents: `製作資源班「${chap} - ${sub}」講義。含白話概念、核心SVG、2個練習。`,
+              contents: `製作資源班「${chap} - ${sub}」講義學。含白話概念、核心SVG、2個練習。`,
               config: {
                 systemInstruction: SPECIAL_ED_INSTRUCTION,
                 responseMimeType: "application/json",
