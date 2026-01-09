@@ -6,23 +6,32 @@
     <title>✨ 數字小魔手：資源班數學魔法屋</title>
     
     <script>
-      // 核心變數定義
+      // 1. 最優先定義環境變數，防止模組報錯
       window.process = { env: { API_KEY: "" } };
 
-      // 隱藏載入遮罩的函數
+      // 2. 全域錯誤捕捉器：如果 JS 崩潰，會顯示錯誤訊息而不是白螢幕
+      window.addEventListener('error', function(e) {
+        console.error('JS Error:', e.error);
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) {
+          overlay.innerHTML = `
+            <div style="background:white; padding:30px; border-radius:20px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.1);">
+              <h2 style="color:#e11d48; margin-top:0;">🪄 魔法陣啟動失敗</h2>
+              <p style="color:#64748b; font-size:14px;">${e.message || '瀏覽器無法載入核心模組'}</p>
+              <button onclick="location.reload()" style="background:#2563eb; color:white; padding:10px 20px; border:none; border-radius:10px; cursor:pointer; font-weight:bold;">重新召喚</button>
+            </div>
+          `;
+        }
+      });
+
+      // 3. 隱藏函數
       window.hideLoadingOverlay = function() {
         const overlay = document.getElementById('loading-overlay');
         if (overlay) {
           overlay.style.opacity = '0';
-          setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 500);
+          setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 600);
         }
       };
-
-      // 如果 3 秒後還沒載入，顯示「手動進入」按鈕
-      setTimeout(() => {
-        const btn = document.getElementById('force-enter-btn');
-        if (btn) btn.style.display = 'block';
-      }, 3000);
     </script>
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -42,18 +51,23 @@
 
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
-      body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; margin: 0; }
+      body { 
+        font-family: 'Noto Sans TC', sans-serif; 
+        background-color: #f8fafc; 
+        margin: 0;
+        overflow-x: hidden;
+      }
       #loading-overlay { 
-        position: fixed; inset: 0; background: white; 
+        position: fixed; inset: 0; background: #ffffff; 
         display: flex; flex-direction: column; align-items: center; justify-content: center; 
-        z-index: 9999; transition: opacity 0.5s ease; 
+        z-index: 9999; transition: opacity 0.5s ease-out; 
       }
       .spinner { 
-        width: 60px; height: 60px; border: 6px solid #f3f4f6; border-top: 6px solid #2563eb; 
+        width: 50px; height: 50px; border: 5px solid #f1f5f9; border-top: 5px solid #3b82f6; 
         border-radius: 50%; animation: spin 1s linear infinite; 
       }
       @keyframes spin { to { transform: rotate(360deg); } }
-      #force-enter-btn {
+      #emergency-btn {
         display: none; margin-top: 20px; padding: 10px 20px;
         background: #1e293b; color: white; border-radius: 12px;
         border: none; font-weight: bold; cursor: pointer;
@@ -63,8 +77,15 @@
   <body>
     <div id="loading-overlay">
       <div class="spinner"></div>
-      <p style="margin-top: 24px; font-weight: 900; color: #1e3a8a; font-size: 1.1rem;">🪄 正在編織數學魔法圖書館...</p>
-      <button id="force-enter-btn" onclick="window.hideLoadingOverlay()">直接進入</button>
+      <p style="margin-top: 20px; font-weight: 800; color: #1e40af;">🪄 正在加載魔法清單...</p>
+      <button id="emergency-btn" onclick="window.hideLoadingOverlay()">強行啟動</button>
+      <script>
+        // 5秒後如果還沒進去，顯示強行啟動按鈕
+        setTimeout(() => { 
+          const btn = document.getElementById('emergency-btn');
+          if (btn) btn.style.display = 'block';
+        }, 5000);
+      </script>
     </div>
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
