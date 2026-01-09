@@ -6,16 +6,12 @@
     <title>✨ 數字小魔手：資源班數學魔法屋</title>
     
     <script>
-      // 1. 環境變數
-      window.process = { env: { API_KEY: "" } };
+      // ⚠️ 重要：移除原本手動定義 window.process 的程式碼
+      // 系統會自動注入 process.env.API_KEY，手動定義 "" 會導致金鑰失效
       
-      // 2. 全局錯誤捕獲 (用於診斷)
+      // 全局錯誤捕獲 (用於診斷)
       window.onerror = function(msg, url, lineNo, columnNo, error) {
-        const debug = document.getElementById('debug-console');
-        if (debug) {
-          debug.style.display = 'block';
-          debug.innerHTML += `<div style="color:#e11d48; margin-bottom:5px;">❌ 錯誤: ${msg} (第${lineNo}行)</div>`;
-        }
+        console.error('Global Error:', msg, lineNo);
         return false;
       };
 
@@ -49,9 +45,9 @@
       #loading-overlay { position: fixed; inset: 0; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.6s ease; }
       .spinner { width: 60px; height: 60px; border: 6px solid #f3f4f6; border-top: 6px solid #2563eb; border-radius: 50%; animation: spin 1s linear infinite; }
       @keyframes spin { to { transform: rotate(360deg); } }
-      #debug-console { position: fixed; bottom: 0; left: 0; right: 0; background: #fff1f2; border-top: 2px solid #e11d48; padding: 15px; font-family: monospace; font-size: 12px; z-index: 10000; display: none; max-height: 200px; overflow-y: auto; }
       @media print { .no-print { display: none !important; } }
       .canvas-container { touch-action: none; }
+      input, select { font-size: 16px !important; } /* 防止 iOS 自動縮放 */
     </style>
   </head>
   <body>
@@ -61,21 +57,17 @@
     </div>
 
     <div id="root"></div>
-    <div id="debug-console"><strong>🛠️ 系統診斷報告：</strong><br></div>
 
-    <!-- 所有的 React 邏輯直接寫在 HTML 裡 -->
     <script type="text/babel" data-type="module">
       import React, { useState, useEffect, useRef } from 'react';
       import ReactDOM from 'react-dom/client';
       import { GoogleGenAI, Type } from "@google/genai";
 
-      // --- 常數設定 ---
-      const SPECIAL_ED_INSTRUCTION = `你是一位資深的國小特教老師（資源班）。你的學生在理解抽象符號上有困難。
+      const SPECIAL_ED_INSTRUCTION = `你是一位資深的國小特教老師。
 1. 排版：大字體，短句子。
-2. 白話加註：例如 10 ÷ 2 = 5 需加註『(全部有10個) 分成 (每份2個) 是 (5份)』。
-3. SVG繪圖：必須提供 visualAidSvg，使用 stroke-width: 5，畫出具象物品（圓圈、錢幣）。`;
+2. 具象：10 ÷ 2 = 5 需加註『(全部10個) 分成 (每份2個) 是 (5份)』。
+3. SVG：使用 stroke-width: 5，畫出高對比色圓圈或錢幣。`;
 
-      // --- 繪圖組件 ---
       const DrawingCanvas = ({ id, height = 400, isVisible }) => {
         const canvasRef = useRef(null);
         const [color, setColor] = useState('#000000');
@@ -122,7 +114,6 @@
         );
       };
 
-      // --- 主程式 ---
       const App = () => {
         const [loading, setLoading] = useState(false);
         const [params, setParams] = useState({ year: '114', publisher: '康軒', grade: '一年級', semester: '上' });
@@ -137,10 +128,13 @@
         const handleQuery = async () => {
           setLoading(true);
           try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const apiKey = process.env.API_KEY;
+            if (!apiKey) throw new Error("環境中未偵測到 API Key，請確認平台設定。");
+            
+            const ai = new GoogleGenAI({ apiKey });
             const response = await ai.models.generateContent({
               model: 'gemini-3-flash-preview',
-              contents: `列出 ${params.year}學年度 ${params.publisher}版 國小數學 ${params.grade}${params.semester} 的課程單元。`,
+              contents: `列出 ${params.year}學年度 ${params.publisher}版 國小數學 ${params.grade}${params.semester} 的課程單元目錄。`,
               config: {
                 tools: [{ googleSearch: {} }],
                 responseMimeType: "application/json",
@@ -157,7 +151,10 @@
               }
             });
             setChapters(JSON.parse(response.text));
-          } catch (e) { alert("查詢失敗：" + e.message); }
+          } catch (e) { 
+            console.error(e);
+            alert("錯誤：" + e.message); 
+          }
           setLoading(false);
         };
 
@@ -167,7 +164,7 @@
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             const response = await ai.models.generateContent({
               model: 'gemini-3-pro-preview',
-              contents: `為資源班學生製作「${chap} - ${sub}」講義。包含具象白話概念、核心SVG、2個步驟例題。`,
+              contents: `製作資源班「${chap} - ${sub}」講義。含白話概念、核心SVG、2個練習。`,
               config: {
                 systemInstruction: SPECIAL_ED_INSTRUCTION,
                 responseMimeType: "application/json",
@@ -205,27 +202,27 @@
             </header>
 
             <div className="flex flex-1 overflow-hidden">
-              <aside className="w-80 bg-white border-r p-6 overflow-y-auto no-print">
+              <aside className="w-80 bg-white border-r p-6 overflow-y-auto no-print shadow-sm">
                 <div className="space-y-6">
                   <div className="space-y-4">
                     <h2 className="font-black text-slate-700">1. 設定條件</h2>
-                    <select value={params.publisher} onChange={e => setParams({...params, publisher: e.target.value})} className="w-full p-2 border rounded font-bold">
+                    <select value={params.publisher} onChange={e => setParams({...params, publisher: e.target.value})} className="w-full p-3 border rounded-xl font-bold bg-slate-50">
                       <option>康軒</option><option>南一</option><option>翰林</option>
                     </select>
-                    <select value={params.grade} onChange={e => setParams({...params, grade: e.target.value})} className="w-full p-2 border rounded font-bold">
+                    <select value={params.grade} onChange={e => setParams({...params, grade: e.target.value})} className="w-full p-3 border rounded-xl font-bold bg-slate-50">
                       <option>一年級</option><option>二年級</option><option>三年級</option><option>四年級</option><option>五年級</option><option>六年級</option>
                     </select>
-                    <button onClick={handleQuery} className="w-full bg-blue-600 text-white p-3 rounded-xl font-black">查詢目錄</button>
+                    <button onClick={handleQuery} className="w-full bg-blue-600 text-white p-4 rounded-xl font-black shadow-lg hover:bg-blue-700 transition active:scale-95">查詢目錄</button>
                   </div>
 
                   {chapters.length > 0 && (
                     <div className="space-y-4 pt-6 border-t">
                       <h2 className="font-black text-slate-700">2. 選擇單元</h2>
                       {chapters.map((c, i) => (
-                        <div key={i}>
-                          <div className="text-xs font-black text-blue-500">{c.title}</div>
+                        <div key={i} className="bg-blue-50/30 p-2 rounded-lg">
+                          <div className="text-xs font-black text-blue-600 px-2 mb-1">{c.title}</div>
                           {c.subChapters.map((sub, si) => (
-                            <button key={si} onClick={() => handleGenerate(c.title, sub)} className="w-full text-left p-2 text-sm hover:bg-blue-50 rounded font-medium">
+                            <button key={si} onClick={() => handleGenerate(c.title, sub)} className="w-full text-left p-2 text-sm hover:bg-white hover:shadow-sm rounded-lg font-bold text-slate-600">
                               • {sub}
                             </button>
                           ))}
@@ -236,19 +233,19 @@
                 </div>
               </aside>
 
-              <main className="flex-1 overflow-y-auto p-10 bg-slate-50">
+              <main className="flex-1 overflow-y-auto p-4 lg:p-10 bg-slate-50">
                 {loading ? (
                   <div className="h-full flex flex-col items-center justify-center">
                     <div className="spinner mb-4"></div>
                     <p className="font-black text-slate-400">正在召喚數學魔法...</p>
                   </div>
                 ) : handout ? (
-                  <article className="max-w-4xl mx-auto bg-white p-16 rounded-[3rem] shadow-xl border min-h-screen relative">
-                    <button onClick={() => window.print()} className="no-print absolute top-10 right-10 bg-slate-900 text-white px-6 py-2 rounded-full font-black">🖨️ 列印講義</button>
+                  <article className="max-w-4xl mx-auto bg-white p-8 lg:p-16 rounded-[3rem] shadow-2xl border min-h-screen relative">
+                    <button onClick={() => window.print()} className="no-print absolute top-8 right-8 bg-slate-900 text-white px-6 py-2 rounded-full font-black">🖨️ 列印講義</button>
                     
                     <div className="border-b-8 border-slate-900 pb-8 mb-12">
-                      <h1 className="text-5xl font-black mb-6">{handout.title}</h1>
-                      <div className="flex gap-12 text-2xl font-bold pt-8 border-t-2">
+                      <h1 className="text-4xl lg:text-5xl font-black mb-6 leading-tight">{handout.title}</h1>
+                      <div className="flex flex-wrap gap-8 text-2xl font-bold pt-8 border-t-2">
                         <span>姓名：_______________</span>
                         <span>得分：_______________</span>
                       </div>
@@ -258,28 +255,28 @@
                       <h2 className="text-3xl font-black bg-blue-100 text-blue-800 px-4 py-1 rounded-lg mb-8 inline-block">💡 魔法加油站</h2>
                       <p className="text-3xl leading-relaxed font-bold text-slate-800 mb-8">{handout.concept}</p>
                       {handout.visualAidSvg && (
-                        <div className="p-10 bg-slate-50 rounded-3xl flex justify-center border-2 border-slate-100" dangerouslySetInnerHTML={{ __html: handout.visualAidSvg }} />
+                        <div className="p-10 bg-slate-50 rounded-3xl flex justify-center border-2 border-slate-100 overflow-x-auto" dangerouslySetInnerHTML={{ __html: handout.visualAidSvg }} />
                       )}
                     </section>
 
                     <section>
                       <h2 className="text-3xl font-black bg-emerald-100 text-emerald-800 px-4 py-1 rounded-lg mb-8 inline-block">✍️ 魔法練習題</h2>
-                      <div className="space-y-20">
+                      <div className="space-y-16">
                         {handout.examples.map((ex, i) => (
-                          <div key={i} className="p-8 bg-slate-50 rounded-[3rem] border-2 border-slate-200">
+                          <div key={i} className="p-8 bg-slate-50 rounded-[2.5rem] border-2 border-slate-200">
                             <div className="flex justify-between items-start mb-6">
                               <p className="text-3xl font-bold text-slate-800 leading-relaxed">例題 {i+1}：{ex.question}</p>
-                              <button onClick={() => setVisibleCanvas(v => ({...v, [i]: !v[i]}))} className="no-print bg-white border-2 px-4 py-2 rounded-xl text-sm font-black">✏️ 畫板</button>
+                              <button onClick={() => setVisibleCanvas(v => ({...v, [i]: !v[i]}))} className="no-print bg-white border-2 px-4 py-2 rounded-xl text-sm font-black shadow-sm">✏️ 畫板</button>
                             </div>
                             {visibleCanvas[i] && <DrawingCanvas id={i} isVisible={true} />}
-                            <div className="mt-8 space-y-4">
+                            <div className="mt-8 space-y-6">
                               {ex.stepByStep.map((s, si) => (
                                 <div key={si} className="flex gap-4 items-center">
-                                  <span className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center font-black shrink-0">{si+1}</span>
+                                  <span className="w-10 h-10 bg-emerald-500 text-white rounded-full flex items-center justify-center font-black shrink-0 text-xl">{si+1}</span>
                                   <span className="text-2xl font-bold text-slate-600">{s}</span>
                                 </div>
                               ))}
-                              <div className="text-right text-3xl font-black text-emerald-600 pt-6">答：{ex.answer}</div>
+                              <div className="text-right text-4xl font-black text-emerald-600 pt-6">答：{ex.answer}</div>
                             </div>
                           </div>
                         ))}
@@ -288,8 +285,8 @@
                   </article>
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center opacity-20">
-                    <span className="text-9xl">🪄</span>
-                    <p className="text-2xl font-black mt-4">選擇單元，開始編織講義</p>
+                    <span className="text-9xl mb-4">🪄</span>
+                    <p className="text-2xl font-black">選擇單元，開始編織講義</p>
                   </div>
                 )}
               </main>
