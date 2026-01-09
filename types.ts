@@ -1,3 +1,4 @@
+
 export type Publisher = '康軒' | '南一' | '翰林';
 export type Semester = '上' | '下';
 export type Grade = '一年級' | '二年級' | '三年級' | '四年級' | '五年級' | '六年級';
@@ -15,6 +16,7 @@ export interface Chapter {
   id: string;
   title: string;
   subChapters: string[];
+  sourceUrls?: string[]; // 新增：用於儲存 Search Grounding 的來源連結
 }
 
 export interface HandoutContent {

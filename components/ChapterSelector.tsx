@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Chapter } from '../types';
 
@@ -8,6 +9,9 @@ interface Props {
 }
 
 const ChapterSelector: React.FC<Props> = ({ chapters, onSelect, isLoading }) => {
+  // 提取所有章節中的不重複來源網址以便展示
+  const allUrls = Array.from(new Set(chapters.flatMap(c => c.sourceUrls || [])));
+
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
       <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center">
@@ -37,6 +41,28 @@ const ChapterSelector: React.FC<Props> = ({ chapters, onSelect, isLoading }) => 
           ))
         )}
       </div>
+
+      {/* 根據規範：展示 Search Grounding 的來源連結 */}
+      {allUrls.length > 0 && (
+        <div className="mt-6 pt-4 border-t border-slate-100">
+          <p className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest">資料來源：</p>
+          <ul className="space-y-1">
+            {allUrls.map((url, i) => (
+              <li key={i} className="truncate">
+                <a 
+                  href={url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-[10px] text-blue-400 hover:underline flex items-center gap-1"
+                >
+                  <span className="shrink-0">🔗</span>
+                  <span className="truncate">{url}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
