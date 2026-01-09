@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { SelectionParams, Chapter, HandoutContent, HomeworkContent, HomeworkConfig } from './types.ts';
-import { fetchChapters, generateHandoutFromText, generateHomework } from './services/geminiService.ts';
-import SelectionForm from './components/SelectionForm.tsx';
-import ChapterSelector from './components/ChapterSelector.tsx';
-import HandoutViewer from './components/HandoutViewer.tsx';
-import HomeworkViewer from './components/HomeworkViewer.tsx';
-import HomeworkConfigSection from './components/HomeworkConfigSection.tsx';
-import ManualUnitInput from './components/ManualUnitInput.tsx';
+import { SelectionParams, Chapter, HandoutContent, HomeworkContent, HomeworkConfig } from './types';
+import { fetchChapters, generateHandoutFromText, generateHomework } from './services/geminiService';
+import SelectionForm from './components/SelectionForm';
+import ChapterSelector from './components/ChapterSelector';
+import HandoutViewer from './components/HandoutViewer';
+import HomeworkViewer from './components/HomeworkViewer';
+import HomeworkConfigSection from './components/HomeworkConfigSection';
+import ManualUnitInput from './components/ManualUnitInput';
 
 const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -19,9 +19,10 @@ const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<'handout' | 'homework'>('handout');
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
+  // 當元件掛載成功，立即呼叫全域的隱藏函式
   useEffect(() => {
-    if ((window as any).hideLoadingOverlay) {
-      setTimeout((window as any).hideLoadingOverlay, 500);
+    if (typeof (window as any).hideLoadingOverlay === 'function') {
+      (window as any).hideLoadingOverlay();
     }
   }, []);
 
@@ -50,7 +51,6 @@ const App: React.FC = () => {
         setError({ msg: "找不到目錄，請試試看直接在下方輸入單元名稱！", type: 'general' });
       }
     } catch (err: any) {
-      console.error(err);
       await handleKeyError(err);
     } finally {
       setLoading(false);
@@ -64,7 +64,6 @@ const App: React.FC = () => {
     setViewMode('handout');
     setHomework(null);
     
-    // 如果沒有先選設定，給予預設值以免當機
     const currentParams = params || {
       year: '114',
       publisher: '康軒',

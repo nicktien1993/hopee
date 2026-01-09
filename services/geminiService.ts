@@ -11,15 +11,10 @@ const SPECIAL_ED_INSTRUCTION = `你是一位資深的國小特教老師（資源
 3. SVG 繪圖要求 (必填 visualAidSvg)：使用粗線條 (stroke-width: 5) 與鮮艷的高對比顏色。
 4. 解題腳步：提供 scaffold 拆解步驟。`;
 
-/**
- * 獲取單元目錄
- * 使用 Google Search 尋找課程大綱，並提取來源連結以符合規範
- */
 export const fetchChapters = async (params: SelectionParams): Promise<Chapter[]> => {
-  // 每次呼叫前建立新實例，確保使用最新選擇的金鑰
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-image-preview', // 搜尋功能必須使用此模型以獲得最佳支援
+    model: 'gemini-3-pro-image-preview',
     contents: `請搜尋並列出 ${params.year}學年度 ${params.publisher}版 國小數學 ${params.grade}${params.semester} 的課程單元目錄。`,
     config: {
       tools: [{ googleSearch: {} }],
@@ -42,25 +37,17 @@ export const fetchChapters = async (params: SelectionParams): Promise<Chapter[]>
   try {
     const text = response.text || "[]";
     const chapters: Chapter[] = JSON.parse(text);
-    
-    // 提取來源連結
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     const urls = chunks
       .map((chunk: any) => chunk.web?.uri)
       .filter((uri: string | undefined): uri is string => !!uri);
     
-    if (urls.length > 0) {
-      return chapters.map(c => ({ ...c, sourceUrls: urls }));
-    }
-    return chapters;
+    return urls.length > 0 ? chapters.map(c => ({ ...c, sourceUrls: urls })) : chapters;
   } catch {
     return [];
   }
 };
 
-/**
- * 根據單元生成特教講義
- */
 export const generateHandoutFromText = async (params: SelectionParams, chapter: string, subChapter: string): Promise<HandoutContent> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
@@ -109,21 +96,11 @@ export const generateHandoutFromText = async (params: SelectionParams, chapter: 
   return JSON.parse(response.text || "{}");
 };
 
-/**
- * 產生練習卷內容
- */
-export const generateHomework = async (
-  params: SelectionParams, 
-  chapter: string, 
-  subChapter: string, 
-  config: HomeworkConfig
-): Promise<HomeworkContent> => {
+export const generateHomework = async (params: SelectionParams, chapter: string, subChapter: string, config: HomeworkConfig): Promise<HomeworkContent> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
-    contents: `請為資源班學生製作「${chapter} - ${subChapter}」的練習卷。
-    難易度：${config.difficulty}。
-    題數配置：計算題 ${config.calculationCount} 題，應用題 ${config.wordProblemCount} 題。`,
+    contents: `請為資源班學生製作「${chapter} - ${subChapter}」的練習卷。`,
     config: {
       systemInstruction: SPECIAL_ED_INSTRUCTION,
       responseMimeType: "application/json",
@@ -136,7 +113,7 @@ export const generateHomework = async (
             items: {
               type: Type.OBJECT,
               properties: {
-                type: { type: Type.STRING, description: '必須為 "計算題" 或 "應用題"' },
+                type: { type: Type.STRING },
                 content: { type: Type.STRING },
                 hint: { type: Type.STRING },
                 answer: { type: Type.STRING },
