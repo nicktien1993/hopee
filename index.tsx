@@ -4,14 +4,10 @@ import App from './App.tsx';
 
 const rootElement = document.getElementById('root');
 
+// 呼叫 HTML 定義的全域函式
 const hideLoading = () => {
-  const overlay = document.getElementById('loading-overlay');
-  if (overlay) {
-    overlay.style.opacity = '0';
-    overlay.style.pointerEvents = 'none';
-    setTimeout(() => {
-      if (overlay && overlay.parentNode) overlay.remove();
-    }, 600);
+  if (typeof (window as any).hideLoadingOverlay === 'function') {
+    (window as any).hideLoadingOverlay();
   }
 };
 
@@ -27,15 +23,12 @@ try {
     </React.StrictMode>
   );
   
-  // 嘗試在渲染開始後不久隱藏 Loading
-  setTimeout(hideLoading, 300);
+  // 渲染完成後通知隱藏
+  setTimeout(hideLoading, 500);
 } catch (e) {
   console.error("渲染過程發生錯誤:", e);
   hideLoading();
 }
 
-// 監聽資源載入完成作為最終備案
+// 監聽資源載入完成作為備案
 window.addEventListener('load', hideLoading);
-
-// 額外保險：如果模組已執行但 5 秒後還在 loading，強制嘗試隱藏
-setTimeout(hideLoading, 5000);
