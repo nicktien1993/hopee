@@ -27,37 +27,42 @@
       .wizard-card { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
       @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
       @media print { .no-print { display: none !important; } }
+      
+      #initial-loader {
+        position: fixed;
+        inset: 0;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
     </style>
   </head>
   <body>
     <div id="root"></div>
     
-    <!-- 初始載入動畫：如果 JS 執行成功，這段會被 React 覆蓋或手動隱藏 -->
-    <div id="initial-loader" style="position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: white; z-index: 9999; transition: opacity 0.5s ease;">
+    <div id="initial-loader">
       <div style="width: 50px; height: 50px; border: 5px solid #f1f5f9; border-top-color: #2563eb; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-      <p style="margin-top: 20px; font-weight: 900; color: #1e293b; letter-spacing: 0.1em;">🪄 魔法正在啟動...</p>
-      <div id="debug-info" style="margin-top: 30px; font-size: 12px; color: #cbd5e1; max-width: 80%; text-align: center;">
-        正在從 ESM 伺服器獲取魔法能量...
+      <p id="loader-text" style="margin-top: 20px; font-weight: 900; color: #1e293b;">🪄 魔法啟動中...</p>
+      <div id="error-box" style="display: none; margin-top: 20px; text-align: center; color: #ef4444; padding: 0 20px;">
+        <p id="error-msg" style="font-size: 14px; margin-bottom: 10px;"></p>
+        <button onclick="location.reload()" style="background: #2563eb; color: white; padding: 8px 16px; border-radius: 8px; font-weight: bold;">重新整理</button>
       </div>
     </div>
 
-    <script>
-      // 保險邏輯：如果 6 秒後轉圈還沒消失，顯示強制進入按鈕並印出錯誤
-      setTimeout(() => {
-        const loader = document.getElementById('initial-loader');
-        const debug = document.getElementById('debug-info');
-        if (loader && loader.style.display !== 'none') {
-          debug.innerHTML = '<span style="color:#ef4444">連線較慢或發生錯誤。</span><br><button onclick="document.getElementById(\'initial-loader\').style.display=\'none\'" style="margin-top:10px; text-decoration:underline;">強制進入嘗試</button>';
-        }
-      }, 6000);
-
-      window.onerror = function(msg) {
-        const debug = document.getElementById('debug-info');
-        if (debug) debug.innerHTML = '<span style="color:#ef4444">發生錯誤: ' + msg + '</span>';
+    <script type="module">
+      // 監控全局錯誤
+      window.onerror = function(msg, url, line) {
+        document.getElementById('loader-text').style.display = 'none';
+        const errorBox = document.getElementById('error-box');
+        const errorMsg = document.getElementById('error-msg');
+        errorBox.style.display = 'block';
+        errorMsg.innerText = "啟動失敗: " + msg;
       };
     </script>
-
     <script type="module" src="./index.tsx"></script>
-    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
   </body>
 </html>
