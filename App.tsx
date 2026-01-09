@@ -8,13 +8,14 @@ import HomeworkConfigSection from './components/HomeworkConfigSection.tsx';
 import ManualUnitInput from './components/ManualUnitInput.tsx';
 
 const App: React.FC = () => {
-  // 確保遮罩被移除
+  // 進入組件時強力清除載入畫面
   useEffect(() => {
+    if ((window as any).hideLoadingOverlay) {
+      (window as any).hideLoadingOverlay();
+    }
     const timer = setTimeout(() => {
-      if ((window as any).hideLoadingOverlay) {
-        (window as any).hideLoadingOverlay();
-      }
-    }, 100);
+      if ((window as any).hideLoadingOverlay) (window as any).hideLoadingOverlay();
+    }, 500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -113,7 +114,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <header className="bg-white border-b border-slate-200 py-4 px-8 flex justify-between items-center no-print sticky top-0 z-40 shadow-sm shrink-0">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => setViewMode('library')}>
           <span className="text-3xl">✨</span>
@@ -206,12 +207,6 @@ const App: React.FC = () => {
                     <span className="text-9xl mb-8 block">📖</span>
                     <h3 className="text-3xl font-black text-slate-400">魔法圖書館空空如也</h3>
                     <p className="text-slate-300 font-bold mt-4 text-xl">請在左側選擇版本並點擊「載入全冊目錄」！</p>
-                    <div className="lg:hidden mt-12 max-w-sm mx-auto space-y-8">
-                      <SelectionForm initialParams={params} onSubmit={handleFetchFullLibrary} isLoading={loading} />
-                      <div className="pt-4 border-t border-slate-100">
-                        <ManualUnitInput onGenerate={handleGenerateHandout} isLoading={loading} />
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>
