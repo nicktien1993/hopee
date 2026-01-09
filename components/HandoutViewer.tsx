@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { HandoutContent, SelectionParams, SpecialEdSettings } from '../types';
-import DrawingCanvas from './DrawingCanvas';
+import { HandoutContent, SelectionParams, SpecialEdSettings } from '../types.ts';
+import DrawingCanvas from './DrawingCanvas.tsx';
 
 interface Props {
   content: HandoutContent;

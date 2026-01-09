@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { HomeworkContent, SelectionParams, SpecialEdSettings } from '../types';
-import DrawingCanvas from './DrawingCanvas';
+import { HomeworkContent, SelectionParams, SpecialEdSettings } from '../types.ts';
+import DrawingCanvas from './DrawingCanvas.tsx';
 
 interface Props {
   content: HomeworkContent;

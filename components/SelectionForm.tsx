@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
-import { SelectionParams, Publisher, Grade, Semester, Difficulty } from '../types';
+import { SelectionParams, Publisher, Grade, Semester, Difficulty } from '../types.ts';
 
 interface Props {
+  initialParams: SelectionParams;
   onSubmit: (params: SelectionParams) => void;
   isLoading: boolean;
 }
@@ -12,90 +12,87 @@ const grades: Grade[] = ['一年級', '二年級', '三年級', '四年級', '�
 const semesters: Semester[] = ['上', '下'];
 const difficulties: Difficulty[] = ['易', '中', '難'];
 
-const SelectionForm: React.FC<Props> = ({ onSubmit, isLoading }) => {
-  const [form, setForm] = useState<SelectionParams>({
-    year: '114',
-    publisher: '康軒',
-    grade: '一年級',
-    semester: '上',
-    difficulty: '易'
-  });
+const SelectionForm: React.FC<Props> = ({ initialParams, onSubmit, isLoading }) => {
+  const [form, setForm] = useState<SelectionParams>(initialParams);
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-      <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
-        <span className="mr-2">📚</span> 1. 教材基礎設定
-      </h2>
-      
+    <div className="space-y-6">
       <div className="space-y-4">
+        <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest">第一步：定位教材</h2>
+        
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">學年度</label>
+          <label className="block text-xs font-black text-slate-500 mb-2">學年度</label>
           <input 
             type="text" 
             value={form.year}
             onChange={e => setForm({...form, year: e.target.value})}
-            className="w-full border border-slate-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">出版社</label>
-          <select 
-            value={form.publisher}
-            onChange={e => setForm({...form, publisher: e.target.value as Publisher})}
-            className="w-full border border-slate-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          >
-            {publishers.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">年級</label>
-            <select 
-              value={form.grade}
-              onChange={e => setForm({...form, grade: e.target.value as Grade})}
-              className="w-full border border-slate-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            >
-              {grades.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">學期</label>
-            <select 
-              value={form.semester}
-              onChange={e => setForm({...form, semester: e.target.value as Semester})}
-              className="w-full border border-slate-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            >
-              {semesters.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">難易度 (講義例題)</label>
-          <div className="flex gap-2">
-            {difficulties.map(d => (
+          <label className="block text-xs font-black text-slate-500 mb-2">出版社</label>
+          <div className="grid grid-cols-3 gap-2">
+            {publishers.map(p => (
               <button
-                key={d}
-                type="button"
-                onClick={() => setForm({...form, difficulty: d})}
-                className={`flex-1 py-2 rounded-md font-bold text-sm transition-all border-2 ${form.difficulty === d ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                key={p}
+                onClick={() => setForm({...form, publisher: p})}
+                className={`py-2 rounded-xl text-xs font-bold transition-all border-2 ${form.publisher === p ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-100 text-slate-400 hover:border-blue-200'}`}
               >
-                {d === '易' ? '🟢 ' : d === '中' ? '🟡 ' : '🔴 '}{d}
+                {p}
               </button>
             ))}
           </div>
         </div>
 
-        <button 
-          onClick={() => onSubmit(form)}
-          disabled={isLoading}
-          className="w-full py-3 bg-blue-600 text-white font-bold rounded-md hover:bg-blue-700 disabled:opacity-50 transition shadow-sm mt-2"
-        >
-          {isLoading ? '處理中...' : '確認設定並查詢目錄'}
-        </button>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-black text-slate-500 mb-2">年級</label>
+            <select 
+              value={form.grade}
+              onChange={e => setForm({...form, grade: e.target.value as Grade})}
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-3 text-sm font-bold focus:outline-none"
+            >
+              {grades.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-black text-slate-500 mb-2">學期</label>
+            <select 
+              value={form.semester}
+              onChange={e => setForm({...form, semester: e.target.value as Semester})}
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-3 text-sm font-bold focus:outline-none"
+            >
+              {semesters.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+        </div>
       </div>
+
+      <div className="pt-4 border-t border-slate-100 space-y-4">
+        <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest">第二步：魔法強度</h2>
+        <div>
+          <div className="flex gap-2">
+            {difficulties.map(d => (
+              <button
+                key={d}
+                onClick={() => setForm({...form, difficulty: d})}
+                className={`flex-1 py-2 rounded-xl text-xs font-black transition-all border-2 ${form.difficulty === d ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-100 text-slate-400'}`}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <button 
+        onClick={() => onSubmit(form)}
+        disabled={isLoading}
+        className="w-full py-4 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-blue-200 active:scale-95"
+      >
+        {isLoading ? '🧙‍♂️ 召喚中...' : '📚 載入全冊目錄'}
+      </button>
     </div>
   );
 };

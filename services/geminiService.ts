@@ -1,21 +1,22 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { SelectionParams, Chapter, HandoutContent, HomeworkConfig, HomeworkContent } from '../types';
+import { SelectionParams, Chapter, HandoutContent, HomeworkConfig, HomeworkContent } from '../types.ts';
 
-// 特教教學法系統提示詞
-const SPECIAL_ED_INSTRUCTION = `你是一位資深的國小特教老師（資源班）。
-你的學生在理解抽象數學符號上有困難，因此你的任務是製作「極度具象化」的教材。
+const SPECIAL_ED_INSTRUCTION = `你是一位資深的國小特教老師。
+你的學生在理解抽象符號上有困難，因此你的任務是製作「極度具象化」的教材。
+【規範】：字體大、句子短、大量使用口語說明、SVG 繪圖需清晰。`;
 
-【教材製作核心規範】：
-1. 視覺排版：字體極大，句子極短（一行不超過12個字）。
-2. 術語轉譯：必須標註口語：『(全部有多少)』、『(一份拿走幾個)』、『(可以分給幾個人)』。
-3. SVG 繪圖要求 (必填 visualAidSvg)：使用粗線條 (stroke-width: 5) 與鮮艷的高對比顏色。
-4. 解題腳步：提供 scaffold 拆解步驟。`;
+// 使用兼容性最佳的模型
+const DEFAULT_MODEL = 'gemini-3-flash-preview';
 
 export const fetchChapters = async (params: SelectionParams): Promise<Chapter[]> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const prompt = `請搜尋並列出 ${params.year}學年度 ${params.publisher}版 國小數學 ${params.grade}${params.semester} 的「完整單元目錄」。
+  請包含章節名稱與其下的所有小單元名稱。請確保資訊來自最新網路資料。
+  格式要求：JSON 陣列。`;
+
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-image-preview',
-    contents: `請搜尋並列出 ${params.year}學年度 ${params.publisher}版 國小數學 ${params.grade}${params.semester} 的課程單元目錄。`,
+    model: DEFAULT_MODEL,
+    contents: prompt,
     config: {
       tools: [{ googleSearch: {} }],
       responseMimeType: "application/json",
@@ -35,14 +36,10 @@ export const fetchChapters = async (params: SelectionParams): Promise<Chapter[]>
   });
   
   try {
-    const text = response.text || "[]";
-    const chapters: Chapter[] = JSON.parse(text);
+    const chapters: Chapter[] = JSON.parse(response.text || "[]");
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    const urls = chunks
-      .map((chunk: any) => chunk.web?.uri)
-      .filter((uri: string | undefined): uri is string => !!uri);
-    
-    return urls.length > 0 ? chapters.map(c => ({ ...c, sourceUrls: urls })) : chapters;
+    const urls = chunks.map((c: any) => c.web?.uri).filter(Boolean);
+    return chapters.map(c => ({ ...c, sourceUrls: urls }));
   } catch {
     return [];
   }
@@ -51,8 +48,8 @@ export const fetchChapters = async (params: SelectionParams): Promise<Chapter[]>
 export const generateHandoutFromText = async (params: SelectionParams, chapter: string, subChapter: string): Promise<HandoutContent> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
-    contents: `為資源班學生製作「${chapter} - ${subChapter}」的講義。難度：${params.difficulty}。`,
+    model: DEFAULT_MODEL,
+    contents: `製作特教講義：${params.publisher}版 ${params.grade} ${chapter} - ${subChapter}。`,
     config: {
       systemInstruction: SPECIAL_ED_INSTRUCTION,
       responseMimeType: "application/json",
@@ -71,8 +68,7 @@ export const generateHandoutFromText = async (params: SelectionParams, chapter: 
                 stepByStep: { type: Type.ARRAY, items: { type: Type.STRING } },
                 answer: { type: Type.STRING },
                 visualAidSvg: { type: Type.STRING }
-              },
-              required: ["question", "stepByStep", "answer"]
+              }
             }
           },
           exercises: {
@@ -82,14 +78,12 @@ export const generateHandoutFromText = async (params: SelectionParams, chapter: 
               properties: {
                 question: { type: Type.STRING },
                 answer: { type: Type.STRING }
-              },
-              required: ["question", "answer"]
+              }
             }
           },
           tips: { type: Type.STRING },
           checklist: { type: Type.ARRAY, items: { type: Type.STRING } }
-        },
-        required: ["title", "concept", "examples", "exercises", "tips", "checklist"]
+        }
       }
     }
   });
@@ -99,8 +93,8 @@ export const generateHandoutFromText = async (params: SelectionParams, chapter: 
 export const generateHomework = async (params: SelectionParams, chapter: string, subChapter: string, config: HomeworkConfig): Promise<HomeworkContent> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
-    contents: `請為資源班學生製作「${chapter} - ${subChapter}」的練習卷。`,
+    model: DEFAULT_MODEL,
+    contents: `製作隨堂練習卷：${chapter} - ${subChapter}。題數：計算 ${config.calculationCount}, 應用 ${config.wordProblemCount}。`,
     config: {
       systemInstruction: SPECIAL_ED_INSTRUCTION,
       responseMimeType: "application/json",
@@ -118,13 +112,11 @@ export const generateHomework = async (params: SelectionParams, chapter: string,
                 hint: { type: Type.STRING },
                 answer: { type: Type.STRING },
                 visualAidSvg: { type: Type.STRING }
-              },
-              required: ["type", "content", "answer"]
+              }
             }
           },
           checklist: { type: Type.ARRAY, items: { type: Type.STRING } }
-        },
-        required: ["title", "questions", "checklist"]
+        }
       }
     }
   });
