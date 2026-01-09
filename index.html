@@ -5,26 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>✨ 數字小魔手：資源班數學魔法屋</title>
     <script>
-      // 1. 環境變數
+      // 1. 基本環境
       window.process = { env: { API_KEY: "" } };
       
-      // 2. 錯誤診斷日誌
-      window.debugLogs = [];
-      const originalError = console.error;
-      console.error = function(...args) {
-        window.debugLogs.push(args.join(' '));
-        originalError.apply(console, args);
-        showVisualError(args[0]);
-      };
-
-      function showVisualError(msg) {
+      // 2. 顯示診斷訊息
+      function logStatus(msg, isError = false) {
         const errDiv = document.getElementById('debug-error-display');
         if (errDiv) {
           errDiv.style.display = 'block';
-          errDiv.innerHTML += `<div>❌ ${msg}</div>`;
+          const color = isError ? '#be123c' : '#1e40af';
+          const icon = isError ? '❌' : 'ℹ️';
+          errDiv.innerHTML += `<div style="color: ${color}; margin-bottom:4px;">${icon} ${msg}</div>`;
         }
+        console.log(msg);
       }
 
+      // 捕捉模組載入失敗 (針對白畫面的關鍵)
+      window.addEventListener('error', (e) => {
+        if (e.target.tagName === 'SCRIPT' && e.target.type === 'module') {
+          logStatus(`模組檔案讀取失敗: ${e.target.src}`, true);
+        }
+      }, true);
+
+      // 捕捉全域錯誤
+      window.onerror = (m, u, l) => logStatus(`${m} (於 ${u}:${l})`, true);
+
+      // 隱藏載入畫面
       window.hideLoadingOverlay = function() {
         const overlay = document.getElementById('loading-overlay');
         if (overlay) {
@@ -33,24 +39,23 @@
         }
       };
 
-      // 監控白畫面：若 15 秒後 root 仍為空，顯示求救按鈕
+      // 10秒保險機制
       setTimeout(() => {
         const root = document.getElementById('root');
         if (root && root.innerHTML === "") {
-          console.error("偵測到白畫面：React 未能成功掛載。");
-          const help = document.getElementById('white-screen-help');
-          if (help) help.style.display = 'block';
+          logStatus("警告：React 在 10 秒內未成功掛載，請檢查下方錯誤。", true);
+          document.getElementById('white-screen-help').style.display = 'block';
         }
-      }, 15000);
+      }, 10000);
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
       body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; margin: 0; }
-      #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
+      #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; }
       @keyframes spin { to { transform: rotate(360deg); } }
       .animate-spin { animation: spin 1s linear infinite; }
-      #debug-error-display { position: fixed; bottom: 0; left: 0; width: 100%; background: #fee2e2; color: #b91c1c; font-family: monospace; font-size: 12px; padding: 10px; z-index: 10000; display: none; max-height: 150px; overflow: auto; border-top: 2px solid #ef4444; }
+      #debug-error-display { position: fixed; bottom: 0; left: 0; width: 100%; background: #fff1f2; border-top: 2px solid #fb7185; padding: 12px; z-index: 10000; display: none; font-family: monospace; font-size: 11px; max-height: 150px; overflow: auto; width: 100%; }
     </style>
     <script type="importmap">
 {
@@ -68,18 +73,16 @@
   </head>
   <body>
     <div id="loading-overlay">
-      <div style="width: 50px; height: 50px; border: 5px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%;" class="animate-spin"></div>
-      <h2 style="margin-top: 20px; color: #1e3a8a; font-weight: 900;">🪄 正在召喚數學魔法...</h2>
-      <div id="white-screen-help" style="display:none; margin-top: 20px; text-align: center;">
-        <p style="color: #ef4444; font-weight: bold;">⚠️ 魔法能量不穩定（載入異常）</p>
-        <button onclick="location.reload(true)" style="background: #3b82f6; color: white; padding: 10px 20px; border-radius: 10px; margin-top: 10px;">點我重新召喚</button>
+      <div style="width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%;" class="animate-spin"></div>
+      <h2 style="margin-top: 15px; color: #1e3a8a; font-weight: 700;">✨ 正在準備魔法講義...</h2>
+      <div id="white-screen-help" style="display:none; margin-top: 15px;">
+        <button onclick="location.reload(true)" style="background: #3b82f6; color: white; padding: 8px 16px; border-radius: 8px; font-size: 14px;">重新整理畫面</button>
       </div>
     </div>
     
     <div id="root"></div>
-    <div id="debug-error-display"><strong>診斷日誌：</strong></div>
+    <div id="debug-error-display"><strong>🛠️ 診斷資訊：</strong><br></div>
 
-    <!-- 確保直接指向檔案名稱 -->
     <script type="module" src="index.tsx"></script>
   </body>
 </html>

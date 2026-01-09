@@ -2,38 +2,43 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 
-console.log("🚀 index.tsx 已啟動執行");
+// 定義一個全域輔助函式來回報狀態給 HTML 的診斷區
+const logToHtml = (msg: string, isError = false) => {
+  if ((window as any).logStatus) {
+    (window as any).logStatus(msg, isError);
+  } else {
+    console.log(msg);
+  }
+};
+
+logToHtml("🚀 index.tsx 已啟動執行...");
 
 const rootElement = document.getElementById('root');
 
-const hideLoading = () => {
+const finishLoading = () => {
   if (typeof (window as any).hideLoadingOverlay === 'function') {
     (window as any).hideLoadingOverlay();
   }
 };
 
-try {
-  if (!rootElement) {
-    throw new Error("找不到 HTML 中的 #root 節點。");
+if (!rootElement) {
+  logToHtml("❌ 找不到 #root 節點", true);
+} else {
+  try {
+    logToHtml("📦 正在嘗試初始化 React Root...");
+    const root = ReactDOM.createRoot(rootElement);
+    
+    logToHtml("🎨 執行 Render...");
+    root.render(<App />);
+    
+    logToHtml("✅ React 掛載流程已完成");
+    // 成功後隱藏
+    setTimeout(finishLoading, 600);
+  } catch (err: any) {
+    logToHtml(`❌ 渲染過程中發生錯誤: ${err.message}`, true);
+    finishLoading();
   }
-
-  const root = ReactDOM.createRoot(rootElement);
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
-  
-  console.log("✅ React Render 請求已送出");
-  // 延遲隱藏 Loading，確保 React 有時間處理初次渲染
-  setTimeout(hideLoading, 800);
-} catch (e: any) {
-  console.error("致命錯誤: React 渲染崩潰 -", e.message);
-  hideLoading();
 }
 
-// 備援：全頁載入完成後隱藏
-window.addEventListener('load', () => {
-  console.log("📦 視窗資源全數載入完成");
-  hideLoading();
-});
+// 保險：如果 5 秒後還沒隱藏，強制隱藏
+setTimeout(finishLoading, 5000);
