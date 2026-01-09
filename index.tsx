@@ -2,43 +2,39 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 
-// 定義一個全域輔助函式來回報狀態給 HTML 的診斷區
-const logToHtml = (msg: string, isError = false) => {
+const log = (msg: string, isError = false) => {
   if ((window as any).logStatus) {
     (window as any).logStatus(msg, isError);
-  } else {
-    console.log(msg);
   }
+  console.log(`[React-Init] ${msg}`);
 };
 
-logToHtml("🚀 index.tsx 已啟動執行...");
+log("🚀 index.tsx 開始執行...");
 
-const rootElement = document.getElementById('root');
+const container = document.getElementById('root');
 
-const finishLoading = () => {
-  if (typeof (window as any).hideLoadingOverlay === 'function') {
-    (window as any).hideLoadingOverlay();
-  }
-};
-
-if (!rootElement) {
-  logToHtml("❌ 找不到 #root 節點", true);
+if (!container) {
+  log("❌ 找不到根節點 #root", true);
 } else {
   try {
-    logToHtml("📦 正在嘗試初始化 React Root...");
-    const root = ReactDOM.createRoot(rootElement);
-    
-    logToHtml("🎨 執行 Render...");
+    log("📦 初始化 React Root 並開始渲染...");
+    const root = ReactDOM.createRoot(container);
     root.render(<App />);
     
-    logToHtml("✅ React 掛載流程已完成");
-    // 成功後隱藏
-    setTimeout(finishLoading, 600);
+    log("✅ 渲染指令已送出");
+    
+    // 監聽 React 渲染完成的保險機制
+    setTimeout(() => {
+      if ((window as any).hideLoadingOverlay) {
+        (window as any).hideLoadingOverlay();
+      }
+    }, 800);
   } catch (err: any) {
-    logToHtml(`❌ 渲染過程中發生錯誤: ${err.message}`, true);
-    finishLoading();
+    log(`❌ React 初始化失敗: ${err.message}`, true);
   }
 }
 
-// 保險：如果 5 秒後還沒隱藏，強制隱藏
-setTimeout(finishLoading, 5000);
+// 萬用的資源載入保險
+window.addEventListener('load', () => {
+  log("📦 視窗資源全數載入完成");
+});
