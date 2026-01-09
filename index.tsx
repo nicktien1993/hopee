@@ -2,9 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 
+console.log("🚀 index.tsx 已啟動執行");
+
 const rootElement = document.getElementById('root');
 
-// 呼叫 HTML 定義的全域函式
 const hideLoading = () => {
   if (typeof (window as any).hideLoadingOverlay === 'function') {
     (window as any).hideLoadingOverlay();
@@ -13,7 +14,7 @@ const hideLoading = () => {
 
 try {
   if (!rootElement) {
-    throw new Error("找不到根節點 #root");
+    throw new Error("找不到 HTML 中的 #root 節點。");
   }
 
   const root = ReactDOM.createRoot(rootElement);
@@ -23,12 +24,16 @@ try {
     </React.StrictMode>
   );
   
-  // 渲染完成後通知隱藏
-  setTimeout(hideLoading, 500);
-} catch (e) {
-  console.error("渲染過程發生錯誤:", e);
+  console.log("✅ React Render 請求已送出");
+  // 延遲隱藏 Loading，確保 React 有時間處理初次渲染
+  setTimeout(hideLoading, 800);
+} catch (e: any) {
+  console.error("致命錯誤: React 渲染崩潰 -", e.message);
   hideLoading();
 }
 
-// 監聽資源載入完成作為備案
-window.addEventListener('load', hideLoading);
+// 備援：全頁載入完成後隱藏
+window.addEventListener('load', () => {
+  console.log("📦 視窗資源全數載入完成");
+  hideLoading();
+});

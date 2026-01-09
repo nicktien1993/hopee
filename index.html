@@ -5,52 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>✨ 數字小魔手：資源班數學魔法屋</title>
     <script>
-      // 1. 設定環境變數
+      // 1. 環境變數
       window.process = { env: { API_KEY: "" } };
+      
+      // 2. 錯誤診斷日誌
+      window.debugLogs = [];
+      const originalError = console.error;
+      console.error = function(...args) {
+        window.debugLogs.push(args.join(' '));
+        originalError.apply(console, args);
+        showVisualError(args[0]);
+      };
 
-      // 2. 定義全域隱藏載入畫面函式
+      function showVisualError(msg) {
+        const errDiv = document.getElementById('debug-error-display');
+        if (errDiv) {
+          errDiv.style.display = 'block';
+          errDiv.innerHTML += `<div>❌ ${msg}</div>`;
+        }
+      }
+
       window.hideLoadingOverlay = function() {
         const overlay = document.getElementById('loading-overlay');
         if (overlay) {
           overlay.style.opacity = '0';
-          overlay.style.transition = 'opacity 0.5s ease';
-          setTimeout(() => {
-            if (overlay.parentNode) overlay.remove();
-          }, 500);
+          setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 500);
         }
       };
 
-      // 3. 強化錯誤捕捉：若發生錯誤立即顯示並允許手動跳過
-      window.onerror = function(msg, url, line, col, error) {
-        console.error("載入出錯:", msg, "於", url);
-        const overlay = document.getElementById('loading-overlay');
-        if (overlay) {
-          overlay.innerHTML = `
-            <div style="padding: 30px; text-align: center; background: white; border-radius: 20px; border: 2px solid #fee2e2; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 90%;">
-              <h2 style="color: #ef4444; font-size: 20px; font-weight: 900; margin-bottom: 10px;">🪄 魔法召喚超時</h2>
-              <div style="background: #fef2f2; padding: 10px; border-radius: 8px; font-size: 12px; color: #b91c1c; text-align: left; overflow: auto; margin-bottom: 15px; font-family: monospace;">
-                <strong>錯誤：</strong>${msg}<br>
-                <strong>路徑：</strong>${url || 'index.tsx'}
-              </div>
-              <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">可能是網路較慢或路徑解析問題。</p>
-              <div style="display: flex; gap: 10px; justify-content: center;">
-                <button onclick="location.reload(true)" style="background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold;">🔄 重新整理</button>
-                <button onclick="window.hideLoadingOverlay()" style="background: #64748b; color: white; padding: 12px 24px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold;">🚀 直接進入</button>
-              </div>
-            </div>
-          `;
-          overlay.style.opacity = '1';
-        }
-      };
-
-      // 4. 強制保險：若 10 秒後還在轉圈，自動嘗試進入（避免無窮等待）
+      // 監控白畫面：若 15 秒後 root 仍為空，顯示求救按鈕
       setTimeout(() => {
-        const overlay = document.getElementById('loading-overlay');
-        if (overlay && overlay.querySelector('.animate-spin')) {
-          console.warn("載入超過 10 秒，執行強制進入機制。");
-          window.hideLoadingOverlay();
+        const root = document.getElementById('root');
+        if (root && root.innerHTML === "") {
+          console.error("偵測到白畫面：React 未能成功掛載。");
+          const help = document.getElementById('white-screen-help');
+          if (help) help.style.display = 'block';
         }
-      }, 10000);
+      }, 15000);
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -59,28 +50,36 @@
       #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
       @keyframes spin { to { transform: rotate(360deg); } }
       .animate-spin { animation: spin 1s linear infinite; }
+      #debug-error-display { position: fixed; bottom: 0; left: 0; width: 100%; background: #fee2e2; color: #b91c1c; font-family: monospace; font-size: 12px; padding: 10px; z-index: 10000; display: none; max-height: 150px; overflow: auto; border-top: 2px solid #ef4444; }
     </style>
     <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@19.0.0",
-        "react/": "https://esm.sh/react@19.0.0/",
-        "react-dom": "https://esm.sh/react-dom@19.0.0",
-        "react-dom/": "https://esm.sh/react-dom@19.0.0/",
-        "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-        "@google/genai": "https://esm.sh/@google/genai@1.3.0"
-      }
-    }
-    </script>
+{
+  "imports": {
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "react/jsx-runtime": "https://esm.sh/react@19.0.0/jsx-runtime",
+    "@google/genai": "https://esm.sh/@google/genai@1.3.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
+  }
+}
+</script>
   </head>
   <body>
     <div id="loading-overlay">
       <div style="width: 50px; height: 50px; border: 5px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%;" class="animate-spin"></div>
       <h2 style="margin-top: 20px; color: #1e3a8a; font-weight: 900;">🪄 正在召喚數學魔法...</h2>
-      <p style="color: #64748b; margin-top: 8px; font-size: 14px;">首次啟動約需 5-10 秒載入魔法能量</p>
+      <div id="white-screen-help" style="display:none; margin-top: 20px; text-align: center;">
+        <p style="color: #ef4444; font-weight: bold;">⚠️ 魔法能量不穩定（載入異常）</p>
+        <button onclick="location.reload(true)" style="background: #3b82f6; color: white; padding: 10px 20px; border-radius: 10px; margin-top: 10px;">點我重新召喚</button>
+      </div>
     </div>
+    
     <div id="root"></div>
-    <!-- 使用 ./index.tsx 確保解析在當前目錄下 -->
-    <script type="module" src="./index.tsx"></script>
+    <div id="debug-error-display"><strong>診斷日誌：</strong></div>
+
+    <!-- 確保直接指向檔案名稱 -->
+    <script type="module" src="index.tsx"></script>
   </body>
 </html>
