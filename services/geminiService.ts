@@ -1,46 +1,35 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { SelectionParams, Chapter, HandoutContent, HomeworkConfig, HomeworkContent } from '../types';
 
-const getSafeApiKey = () => {
-  try {
-    return process.env.API_KEY || "";
-  } catch (e) {
-    return "";
-  }
-};
+const SYSTEM_INSTRUCTION = `你是一位資深的國小特教老師，專門教授數學資源班。
+你的任務是根據學生的學年度、出版社、年級與單元，生成量身定制的數學講義或練習卷。
 
-const SYSTEM_INSTRUCTION = `你是一位專業國小資源班老師，擅長將複雜數學概念視覺化且口語化。
-請嚴格遵守 JSON 格式輸出。
-
-重要規範：
-1. 針對資源班學生：文字極簡、步驟拆解、絕對不要擁擠。每行文字不宜過長，多用換行。
-2. 數學圖形 (visualAidSvg)：
-   - 請直接生成 <svg> 標籤。
-   - 必須使用 viewBox 確保圖形完整，寬度設為 100%，高度建議 150-250。
-   - 元素之間必須預留充足空白 (Spacing)，不可重疊。
-   - 使用粗線條 (stroke-width: 3-5)。
-   - 文字標籤 (<text>) 字體大小至少 18px，且不可與線條重疊。
-3. 除法概念特別強化：
-   - 當涉及除法時，請使用以下口語化定義：
-     - 被除數：總共多少 (Total)
-     - 除數：每份多少 / 分成幾份 (Size of each group)
-     - 商：分給幾個人 / 得到的份數 (Number of groups)
-4. 內容需符合指定難易度：
-   - 易：數字 20 以內，無進退位。
-   - 中：數字 100 以內，簡單進退位。
-   - 難：數字 1000 以內或多步驟運算。`;
+【特教教學規範】：
+1. 視覺設計：內容必須極度簡潔，每頁資訊量不宜過多。使用大量換行，句子簡短。
+2. 除法教學專屬語法（重要）：
+   - 在所有題目與解釋中，將「被除數」稱呼為「(總共多少)」。
+   - 將「除數」稱呼為「(每份多少)」或「(分成幾份)」。
+   - 將「商」稱呼為「(分完後的答案)」。
+   - 範例：12 (總共多少) ÷ 3 (每份多少) = 4 (分給4個人)。
+3. SVG 繪圖準則：
+   - 必須提供精確的 <svg>。
+   - 使用粗線條 (stroke-width: 4-6) 和明亮的對比色。
+   - 確保所有文字標籤 (<text>) 與線條之間有足夠的空白間距。
+   - 寬度一律設定為 100%，高度在 200px 左右。
+4. 難度動態調整：
+   - 易：僅限個位數或 20 以內，無進位。
+   - 中：100 以內，簡單步驟。
+   - 難：多位數或二步應用題。`;
 
 export const fetchChapters = async (params: SelectionParams): Promise<Chapter[]> => {
-  const apiKey = getSafeApiKey();
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `請檢索 ${params.year}學年度 ${params.publisher}版 ${params.grade}${params.semester} 數學課本目錄。請輸出 JSON 陣列。`,
+    contents: `請檢索 ${params.year}學年度 ${params.publisher}版 數學 ${params.grade}${params.semester} 的課本目錄。請以 JSON 陣列格式輸出。`,
     config: {
       tools: [{ googleSearch: {} }],
       responseMimeType: "application/json",
-      thinkingConfig: { thinkingBudget: 0 },
       responseSchema: {
         type: Type.ARRAY,
         items: {
@@ -57,34 +46,29 @@ export const fetchChapters = async (params: SelectionParams): Promise<Chapter[]>
   });
   
   try {
-    const text = response.text || "[]";
-    return JSON.parse(text);
+    return JSON.parse(response.text || "[]");
   } catch (e) {
-    console.error("Parse Error:", e);
     return [];
   }
 };
 
 export const generateHandoutFromText = async (params: SelectionParams, chapter: string, subChapter: string): Promise<HandoutContent> => {
-  const apiKey = getSafeApiKey();
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `單元：${chapter}-${subChapter}。難易度：${params.difficulty}。
-    請製作：核心概念、2題例題（含輔助圖形）、2題練習。
-    如果是除法，請務必標註：被除數(總共多少)、除數(每份多少)、商(分給幾個人)。
-    SVG 繪圖請確保「圖、文字、線條」之間有明顯間距，不要擠在一起。`,
+    model: 'gemini-3-pro-preview',
+    contents: `請針對單元「${chapter} - ${subChapter}」製作特教版數學講義。難度：${params.difficulty}。
+    內容需含：核心觀念說明（附口語化口訣）、1張視覺輔助圖、2題拆解步驟的例題、2題練習。
+    如果是除法，一定要標註：總共多少、每份多少。`,
     config: {
       systemInstruction: SYSTEM_INSTRUCTION,
       responseMimeType: "application/json",
-      thinkingConfig: { thinkingBudget: 0 },
       responseSchema: {
         type: Type.OBJECT,
         properties: {
           title: { type: Type.STRING },
           concept: { type: Type.STRING },
-          visualAidSvg: { type: Type.STRING, description: "概念說明的 SVG 代碼" },
+          visualAidSvg: { type: Type.STRING },
           examples: {
             type: Type.ARRAY,
             items: {
@@ -93,9 +77,8 @@ export const generateHandoutFromText = async (params: SelectionParams, chapter: 
                 question: { type: Type.STRING },
                 stepByStep: { type: Type.ARRAY, items: { type: Type.STRING } },
                 answer: { type: Type.STRING },
-                visualAidSvg: { type: Type.STRING, description: "例題的 SVG 代碼" }
-              },
-              required: ["question", "stepByStep", "answer"]
+                visualAidSvg: { type: Type.STRING }
+              }
             }
           },
           exercises: {
@@ -105,8 +88,7 @@ export const generateHandoutFromText = async (params: SelectionParams, chapter: 
               properties: {
                 question: { type: Type.STRING },
                 answer: { type: Type.STRING }
-              },
-              required: ["question", "answer"]
+              }
             }
           },
           tips: { type: Type.STRING },
@@ -120,17 +102,16 @@ export const generateHandoutFromText = async (params: SelectionParams, chapter: 
 };
 
 export const generateHomework = async (params: SelectionParams, chapter: string, subChapter: string, config: HomeworkConfig): Promise<HomeworkContent> => {
-  const apiKey = getSafeApiKey();
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `單元：${chapter}-${subChapter}。難易度：${config.difficulty}。產出計算題${config.calculationCount}題、應用題${config.wordProblemCount}題。
-    確保文字敘述簡潔，每題之間有足夠空間。圖形需精確且不擁擠。`,
+    contents: `製作隨堂練習卷。單元：${chapter}-${subChapter}。
+    數量：計算題${config.calculationCount}題、應用題${config.wordProblemCount}題。
+    難度：${config.difficulty}。請確保題目間距加大。`,
     config: {
       systemInstruction: SYSTEM_INSTRUCTION,
       responseMimeType: "application/json",
-      thinkingConfig: { thinkingBudget: 0 },
       responseSchema: {
         type: Type.OBJECT,
         properties: {
@@ -145,8 +126,7 @@ export const generateHomework = async (params: SelectionParams, chapter: string,
                 hint: { type: Type.STRING },
                 answer: { type: Type.STRING },
                 visualAidSvg: { type: Type.STRING }
-              },
-              required: ["type", "content", "answer"]
+              }
             }
           },
           checklist: { type: Type.ARRAY, items: { type: Type.STRING } }

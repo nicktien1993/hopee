@@ -4,35 +4,33 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>✨ 數字小魔手：資源班數學魔法屋</title>
+    <base href="./">
     <script>
-      // 1. 環境變數配置
+      // 1. 基本環境配置
       window.process = { env: { API_KEY: "" } };
       
-      // 2. 診斷日誌輔助函式
+      // 2. 系統診斷輔助
       function logStatus(msg, isError = false) {
-        console.log(`[Status] ${msg}`);
+        console.log(`[System] ${msg}`);
         const debugDiv = document.getElementById('debug-log');
         if (debugDiv) {
-          debugDiv.style.display = 'block';
           const p = document.createElement('div');
-          p.style.color = isError ? '#e11d48' : '#2563eb';
-          p.style.marginBottom = '4px';
+          p.style.color = isError ? '#be123c' : '#1e40af';
+          p.style.padding = '2px 0';
           p.textContent = (isError ? '❌ ' : 'ℹ️ ') + msg;
           debugDiv.appendChild(p);
+          if (isError) debugDiv.style.display = 'block';
         }
       }
 
-      // 捕捉執行階段錯誤
-      window.onerror = (m, u, l) => logStatus(`JS 錯誤: ${m} (於 ${u}:${l})`, true);
-      
-      // 捕捉資源載入錯誤 (例如 404 或 MIME 類型錯誤)
       window.addEventListener('error', (e) => {
-        if (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK') {
+        if (e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK')) {
           logStatus(`資源載入失敗: ${e.target.src || e.target.href}`, true);
         }
       }, true);
 
-      // 隱藏載入遮罩
+      window.onerror = (m, u, l) => logStatus(`JS 錯誤: ${m}`, true);
+
       window.hideLoadingOverlay = function() {
         const overlay = document.getElementById('loading-overlay');
         if (overlay) {
@@ -40,25 +38,15 @@
           setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 500);
         }
       };
-
-      // 15 秒保險機制：如果畫面還是白的，給予提示
-      setTimeout(() => {
-        const root = document.getElementById('root');
-        if (root && root.innerHTML === "") {
-          logStatus("偵測到長時間白畫面，可能是環境不支援直接執行 .tsx 檔案。", true);
-          const helpBtn = document.getElementById('white-screen-help');
-          if (helpBtn) helpBtn.style.display = 'block';
-        }
-      }, 15000);
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
       body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; margin: 0; }
       #loading-overlay { position: fixed; inset: 0; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; }
-      .spinner { width: 40px; height: 40px; border: 4px solid #f3f4f6; border-top: 4px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
+      .spinner { width: 50px; height: 50px; border: 5px solid #f3f4f6; border-top: 5px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
       @keyframes spin { to { transform: rotate(360deg); } }
-      #debug-log { position: fixed; bottom: 0; left: 0; right: 0; background: #fff1f2; border-top: 1px solid #fda4af; padding: 10px; font-family: monospace; font-size: 11px; max-height: 120px; overflow-y: auto; z-index: 10000; display: none; }
+      #debug-log { position: fixed; bottom: 0; left: 0; right: 0; background: #fff1f2; border-top: 2px solid #fda4af; padding: 12px; font-family: monospace; font-size: 11px; max-height: 150px; overflow-y: auto; z-index: 10000; display: none; }
       @media print { .no-print { display: none !important; } }
     </style>
     <script type="importmap">
@@ -78,14 +66,11 @@
   <body>
     <div id="loading-overlay">
       <div class="spinner"></div>
-      <p style="margin-top: 16px; font-weight: bold; color: #1e3a8a;">🪄 正在召喚數學魔法...</p>
-      <div id="white-screen-help" style="display:none; margin-top: 20px;">
-        <button onclick="location.reload(true)" style="background: #3b82f6; color: white; padding: 8px 16px; border-radius: 8px; font-size: 14px;">手動重新整理</button>
-      </div>
+      <p style="margin-top: 20px; font-weight: 900; color: #1e3a8a; font-size: 1.2rem;">🪄 正在召喚數學魔法...</p>
     </div>
     
     <div id="root"></div>
-    <div id="debug-log"><strong>🛠️ 系統診斷日誌：</strong></div>
+    <div id="debug-log"><strong>🛠️ 系統診斷報告：</strong><br></div>
 
     <script type="module" src="./index.tsx"></script>
   </body>
