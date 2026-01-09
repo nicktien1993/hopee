@@ -6,20 +6,18 @@
     <title>✨ 數字小魔手：資源班數學魔法屋</title>
     
     <script>
-      // 核心環境變數
       window.process = { env: { API_KEY: "" } };
 
-      // 錯誤監控與回饋
       window.addEventListener('error', function(event) {
-        console.error('偵測到錯誤:', event.message);
+        console.error('偵測到系統錯誤:', event.message);
         const overlay = document.getElementById('loading-overlay');
         if (overlay) {
           overlay.innerHTML = `
-            <div style="text-align:center; padding: 20px; color: #e11d48;">
+            <div style="text-align:center; padding: 20px; color: #e11d48; font-family: sans-serif;">
               <p style="font-size: 3rem;">⚠️</p>
-              <p style="font-weight: 900; font-size: 1.2rem;">魔法啟動異常</p>
+              <p style="font-weight: 900; font-size: 1.2rem;">魔法核心啟動失敗</p>
               <p style="font-size: 0.8rem; margin-top: 10px; opacity: 0.7;">${event.message}</p>
-              <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:#1e293b; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">重啟魔法</button>
+              <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:#1e293b; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">重新載入</button>
             </div>
           `;
         }
@@ -32,6 +30,9 @@
           setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 600);
         }
       };
+
+      // 保險措施：10秒後如果還沒消失就強制關閉
+      setTimeout(window.hideLoadingOverlay, 10000);
     </script>
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -63,6 +64,7 @@
       }
       @keyframes spin { to { transform: rotate(360deg); } }
       @media print { .no-print { display: none !important; } }
+      .magic-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
     </style>
   </head>
   <body>
