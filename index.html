@@ -5,22 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>✨ 魔法數學助手</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      // 捕捉任何導致白屏的錯誤並顯示
-      window.onerror = function(msg, url, lineNo, columnNo, error) {
-        const root = document.getElementById('root');
-        if (root) {
-          root.innerHTML = `
-            <div style="padding: 40px; font-family: sans-serif; text-align: center;">
-              <h1 style="color: #e11d48;">🪄 魔法載入出錯了</h1>
-              <p style="color: #64748b;">錯誤訊息: ${msg}</p>
-              <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer;">重試一次</button>
-            </div>
-          `;
-        }
-        return false;
-      };
-    </script>
     <script type="importmap">
 {
   "imports": {
@@ -43,17 +27,30 @@
       .wizard-card { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
       @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
       @media print { .no-print { display: none !important; } }
+      
+      /* 強制隱藏初始載入動畫的機制（如果 JS 跑起來了） */
+      .js-loaded #initial-loader { display: none !important; }
     </style>
   </head>
   <body>
-    <div id="root">
-      <div style="display: flex; height: 100vh; align-items: center; justify-content: center; color: #64748b;">
-        <div style="text-align: center;">
-          <div style="width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
-          <p style="font-weight: 900;">🪄 魔法啟動中...</p>
-        </div>
+    <div id="root"></div>
+    
+    <!-- 備用載入提示：如果 5 秒後還在轉，顯示手動按鈕 -->
+    <div id="initial-loader" style="position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: white; z-index: 9999;">
+      <div style="width: 50px; height: 50px; border: 5px solid #f1f5f9; border-top-color: #2563eb; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      <p style="margin-top: 20px; font-weight: 900; color: #1e293b;">🪄 魔法正在啟動...</p>
+      <div id="emergency-btn" style="display: none; margin-top: 20px;">
+        <button onclick="location.reload()" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">點此重新嘗試</button>
       </div>
     </div>
+
+    <script>
+      setTimeout(() => {
+        const btn = document.getElementById('emergency-btn');
+        if (btn) btn.style.display = 'block';
+      }, 5000);
+    </script>
+
     <script type="module" src="./index.tsx"></script>
     <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
   </body>
