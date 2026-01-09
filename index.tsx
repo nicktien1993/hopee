@@ -4,17 +4,19 @@ import App from './App.tsx';
 
 const container = document.getElementById('root');
 if (container) {
-  try {
-    const root = createRoot(container);
-    root.render(<App />);
-    
-    // 渲染排程完成後隱藏遮罩
-    setTimeout(() => {
-      if ((window as any).hideLoadingOverlay) {
-        (window as any).hideLoadingOverlay();
-      }
-    }, 500);
-  } catch (err) {
-    console.error("Mounting Error:", err);
-  }
+  const root = createRoot(container);
+  
+  // 確保在 React 開始渲染時就嘗試與外部溝通
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+
+  // 渲染完成後的回調
+  requestAnimationFrame(() => {
+    if (typeof (window as any).hideLoadingOverlay === 'function') {
+      (window as any).hideLoadingOverlay();
+    }
+  });
 }
