@@ -1,24 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SelectionParams, Chapter, HandoutContent, HomeworkContent, HomeworkConfig } from './types.ts';
 import { fetchChapters, generateHandoutFromText, generateHomework } from './services/geminiService.ts';
-import SelectionForm from './components/SelectionForm.tsx';
 import HandoutViewer from './components/HandoutViewer.tsx';
 import HomeworkViewer from './components/HomeworkViewer.tsx';
-import HomeworkConfigSection from './components/HomeworkConfigSection.tsx';
-import ManualUnitInput from './components/ManualUnitInput.tsx';
+import DrawingCanvas from './components/DrawingCanvas.tsx';
+
+type AppStep = 'start' | 'publisher' | 'grade' | 'library' | 'handout' | 'homework';
 
 const App: React.FC = () => {
-  // 進入組件時強力清除載入畫面
-  useEffect(() => {
-    if ((window as any).hideLoadingOverlay) {
-      (window as any).hideLoadingOverlay();
-    }
-    const timer = setTimeout(() => {
-      if ((window as any).hideLoadingOverlay) (window as any).hideLoadingOverlay();
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
-
+  const [step, setStep] = useState<AppStep>('start');
   const [loading, setLoading] = useState(false);
   const [params, setParams] = useState<SelectionParams>({
     year: '114',
@@ -27,204 +17,228 @@ const App: React.FC = () => {
     semester: '上',
     difficulty: '易'
   });
+  
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [handout, setHandout] = useState<HandoutContent | null>(null);
   const [homework, setHomework] = useState<HomeworkContent | null>(null);
   const [selectedUnit, setSelectedUnit] = useState<{chapter: string, sub: string} | null>(null);
-  const [error, setError] = useState<{msg: string, type: 'permission' | 'general'} | null>(null);
-  const [viewMode, setViewMode] = useState<'library' | 'handout' | 'homework'>('library');
 
-  // 初始化緩存
-  useEffect(() => {
-    const cached = localStorage.getItem('magic_handout_toc');
-    if (cached) {
-      try {
-        const { params: p, data } = JSON.parse(cached);
-        setParams(p);
-        setChapters(data);
-      } catch (e) {
-        localStorage.removeItem('magic_handout_toc');
-      }
-    }
-  }, []);
+  // --- Actions ---
+  
+  const startApp = () => setStep('publisher');
 
-  const handleApiError = (err: any) => {
-    const msg = err.message || "";
-    if (msg.includes("permission denied") || msg.includes("403")) {
-      setError({ 
-        msg: "金鑰權限不足以執行「雲端搜尋」功能。請更換金鑰，或使用下方「手動輸入」功能製作單元。", 
-        type: 'permission' 
-      });
-    } else {
-      setError({ msg: "魔法稍微失靈了：" + msg, type: 'general' });
-    }
+  const selectPublisher = (p: string) => {
+    setParams({ ...params, publisher: p as any });
+    setStep('grade');
   };
 
-  const handleFetchFullLibrary = async (newParams: SelectionParams) => {
-    setLoading(true);
-    setError(null);
+  const selectGrade = async (grade: string, sem: string) => {
+    const newParams = { ...params, grade: grade as any, semester: sem as any };
     setParams(newParams);
+    setLoading(true);
     try {
       const data = await fetchChapters(newParams);
-      if (data && data.length > 0) {
-        setChapters(data);
-        localStorage.setItem('magic_handout_toc', JSON.stringify({ params: newParams, data }));
-        setViewMode('library');
-      } else {
-        setError({ msg: "找不到目錄，請嘗試手動輸入單元名稱。", type: 'general' });
-      }
-    } catch (err: any) {
-      handleApiError(err);
+      setChapters(data);
+      setStep('library');
+    } catch (e) {
+      alert("目錄載入失敗，請確認網路或金鑰。");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGenerateHandout = async (chapterTitle: string, subChapter: string) => {
+  const startGenerate = async (chapter: string, sub: string) => {
+    setSelectedUnit({ chapter, sub });
     setLoading(true);
-    setError(null);
-    setSelectedUnit({ chapter: chapterTitle, sub: subChapter });
     try {
-      const content = await generateHandoutFromText(params, chapterTitle, subChapter);
+      const content = await generateHandoutFromText(params, chapter, sub);
       setHandout(content);
-      setViewMode('handout');
-      setHomework(null);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err: any) {
-      handleApiError(err);
+      setStep('handout');
+    } catch (e) {
+      alert("講義生成失敗！");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGenerateHomework = async (config: HomeworkConfig) => {
-    if (!selectedUnit) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const content = await generateHomework(params, selectedUnit.chapter, selectedUnit.sub, config);
-      setHomework(content);
-      setViewMode('homework');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err: any) {
-      handleApiError(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // --- UI Components ---
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white p-8">
+        <div className="relative w-24 h-24 mb-8">
+          <div className="absolute inset-0 border-8 border-blue-100 rounded-full"></div>
+          <div className="absolute inset-0 border-8 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+        </div>
+        <h2 className="text-2xl font-black text-slate-800">正在施展數學魔法...</h2>
+        <p className="text-slate-400 mt-2 font-bold italic">這可能需要 10-20 秒，請喝杯茶休息一下</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <header className="bg-white border-b border-slate-200 py-4 px-8 flex justify-between items-center no-print sticky top-0 z-40 shadow-sm shrink-0">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setViewMode('library')}>
+    <div className="min-h-screen bg-slate-50 font-sans">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 py-4 px-8 flex justify-between items-center no-print">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setStep('start')}>
           <span className="text-3xl">✨</span>
-          <div>
-            <h1 className="text-xl font-black text-slate-900 leading-tight">數字小魔手</h1>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">特教數學魔法屋</p>
-          </div>
+          <h1 className="text-xl font-black text-slate-900">魔法數學助手</h1>
         </div>
-        
-        <div className="flex gap-3">
-          {viewMode !== 'library' && (
-            <button 
-              onClick={() => setViewMode('library')}
-              className="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl text-sm font-black hover:bg-white border border-slate-200 transition-all"
-            >
-              📂 回到地圖
-            </button>
-          )}
-
-          <button 
-            onClick={() => (window as any).aistudio?.openSelectKey?.()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-black shadow-md hover:bg-blue-700 transition-all"
-          >
-            🔑 金鑰設定
-          </button>
-        </div>
+        <button 
+          onClick={() => (window as any).aistudio?.openSelectKey?.()}
+          className="bg-slate-100 text-slate-500 px-4 py-2 rounded-xl text-sm font-bold hover:bg-white border border-slate-200"
+        >
+          🔑 金鑰
+        </button>
       </header>
 
-      <div className="flex-1 flex overflow-hidden">
-        <aside className="w-80 overflow-y-auto no-print bg-white border-r border-slate-200 p-6 space-y-8 shrink-0 hidden lg:block">
-          <SelectionForm initialParams={params} onSubmit={handleFetchFullLibrary} isLoading={loading} />
-          
-          <div className="pt-4 border-t border-slate-100">
-            <ManualUnitInput onGenerate={handleGenerateHandout} isLoading={loading} />
+      <main className="max-w-4xl mx-auto py-12 px-6">
+        
+        {step === 'start' && (
+          <div className="page-transition text-center py-20">
+            <div className="text-9xl mb-8">🏫</div>
+            <h2 className="text-5xl font-black text-slate-900 mb-6">歡迎來到資源班數學屋</h2>
+            <p className="text-xl text-slate-500 mb-12 font-bold leading-loose">
+              我們將協助您製作符合特教需求、<br/>
+              具象化、大字體的數學講義與隨堂卷。
+            </p>
+            <button 
+              onClick={startApp}
+              className="bg-blue-600 text-white px-12 py-6 rounded-[2.5rem] text-2xl font-black shadow-2xl hover:bg-blue-700 hover:scale-105 transition-all"
+            >
+              開始製作 ➜
+            </button>
           </div>
+        )}
 
-          {error && (
-            <div className={`p-5 rounded-[2rem] text-xs font-bold border-2 ${error.type === 'permission' ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-rose-50 border-rose-200 text-rose-600'}`}>
-              <p className="mb-2">⚠️ {error.msg}</p>
-              {error.type === 'permission' && (
+        {step === 'publisher' && (
+          <div className="page-transition">
+            <h2 className="text-3xl font-black text-slate-800 mb-8 text-center">請選擇出版社</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {['康軒', '南一', '翰林'].map(p => (
                 <button 
-                  onClick={() => (window as any).aistudio?.openSelectKey?.()}
-                  className="w-full py-2 bg-amber-600 text-white rounded-xl mt-2 shadow-sm font-black"
+                  key={p}
+                  onClick={() => selectPublisher(p)}
+                  className="bg-white p-10 rounded-[3rem] shadow-sm border-4 border-transparent hover:border-blue-500 hover:shadow-xl transition-all group"
                 >
-                  更換金鑰
+                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">📚</div>
+                  <div className="text-2xl font-black text-slate-700">{p}</div>
                 </button>
-              )}
+              ))}
             </div>
-          )}
-        </aside>
-
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8 scroll-smooth">
-          <div className="max-w-5xl mx-auto">
-            {loading ? (
-              <div className="h-[60vh] flex flex-col items-center justify-center text-center">
-                <div className="w-20 h-20 border-[10px] border-blue-50 border-t-blue-600 rounded-full animate-spin mb-8"></div>
-                <h2 className="text-3xl font-black text-slate-800">正在召喚數學魔法...</h2>
-                <p className="text-slate-400 mt-3 font-bold italic text-lg">這需要一點咒語時間，請稍候 🪄</p>
-              </div>
-            ) : viewMode === 'library' ? (
-              <div className="space-y-8">
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-10 rounded-[3rem] text-white shadow-xl mb-12">
-                  <h2 className="text-5xl font-black mb-3">教材地圖</h2>
-                  <p className="font-bold opacity-90 text-xl">{params.year}學年度 • {params.publisher} • {params.grade}{params.semester}</p>
-                </div>
-
-                {chapters.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {chapters.map((chapter) => (
-                      <div key={chapter.id} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-200 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
-                        <span className="bg-blue-100 text-blue-700 font-black px-4 py-1.5 rounded-full text-xs mb-6 inline-block uppercase tracking-wider">單元 {chapter.id}</span>
-                        <h3 className="text-2xl font-black text-slate-800 mb-8 h-16 overflow-hidden leading-snug">{chapter.title}</h3>
-                        <div className="space-y-2 border-t pt-6 border-slate-50">
-                          {chapter.subChapters.map((sub, idx) => (
-                            <button 
-                              key={idx}
-                              onClick={() => handleGenerateHandout(chapter.title, sub)}
-                              className="w-full text-left p-4 rounded-2xl text-base font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 group flex items-center justify-between transition-all"
-                            >
-                              <span className="truncate flex-1">{sub}</span>
-                              <span className="opacity-0 group-hover:opacity-100 text-2xl">🪄</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-[4rem] p-32 text-center border-4 border-dashed border-slate-200 shadow-inner">
-                    <span className="text-9xl mb-8 block">📖</span>
-                    <h3 className="text-3xl font-black text-slate-400">魔法圖書館空空如也</h3>
-                    <p className="text-slate-300 font-bold mt-4 text-xl">請在左側選擇版本並點擊「載入全冊目錄」！</p>
-                  </div>
-                )}
-              </div>
-            ) : viewMode === 'handout' && handout ? (
-              <div className="space-y-16 pb-20">
-                <HandoutViewer content={handout} params={params} />
-                <div className="no-print">
-                  <HomeworkConfigSection onGenerate={handleGenerateHomework} isLoading={loading} />
-                </div>
-              </div>
-            ) : viewMode === 'homework' && homework ? (
-              <div className="pb-20">
-                <HomeworkViewer content={homework} params={params} />
-              </div>
-            ) : null}
           </div>
-        </main>
-      </div>
+        )}
+
+        {step === 'grade' && (
+          <div className="page-transition">
+            <h2 className="text-3xl font-black text-slate-800 mb-8 text-center">選擇年級與學期</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-10">
+              {['一年級', '二年級', '三年級', '四年級', '五年級', '六年級'].map(g => (
+                <button 
+                  key={g}
+                  onClick={() => setParams({...params, grade: g as any})}
+                  className={`py-4 rounded-2xl font-black border-2 transition-all ${params.grade === g ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-500 hover:border-blue-400'}`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-4 mb-12">
+              {['上', '下'].map(s => (
+                <button 
+                  key={s}
+                  onClick={() => setParams({...params, semester: s as any})}
+                  className={`flex-1 py-4 rounded-2xl font-black border-2 transition-all ${params.semester === s ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-500'}`}
+                >
+                  {s}學期
+                </button>
+              ))}
+            </div>
+            <button 
+              onClick={() => selectGrade(params.grade, params.semester)}
+              className="w-full bg-blue-600 text-white py-6 rounded-[2.5rem] text-xl font-black shadow-lg hover:bg-blue-700"
+            >
+              下一步：讀取目錄 ➜
+            </button>
+          </div>
+        )}
+
+        {step === 'library' && (
+          <div className="page-transition">
+            <div className="bg-white rounded-[3rem] p-8 mb-8 border border-slate-200">
+              <h2 className="text-3xl font-black text-slate-800 mb-2">請選擇製作單元</h2>
+              <p className="text-slate-400 font-bold mb-8 italic">來源版本：{params.publisher} {params.grade}{params.semester}</p>
+              
+              <div className="space-y-6">
+                {chapters.map(c => (
+                  <div key={c.id} className="border-t border-slate-100 pt-6">
+                    <h3 className="text-xl font-black text-blue-800 mb-4">單元 {c.id}：{c.title}</h3>
+                    <div className="grid grid-cols-1 gap-3">
+                      {c.subChapters.map((sub, idx) => (
+                        <button 
+                          key={idx}
+                          onClick={() => startGenerate(c.title, sub)}
+                          className="text-left bg-slate-50 p-4 rounded-2xl font-bold text-slate-600 hover:bg-blue-600 hover:text-white transition-all group flex justify-between items-center"
+                        >
+                          <span>{sub}</span>
+                          <span className="opacity-0 group-hover:opacity-100">🪄</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button onClick={() => setStep('grade')} className="text-slate-400 font-bold hover:text-slate-600">← 返回重選</button>
+          </div>
+        )}
+
+        {step === 'handout' && handout && (
+          <div className="page-transition">
+            <div className="mb-8 no-print flex gap-4">
+               <button onClick={() => setStep('library')} className="bg-white border-2 border-slate-200 px-6 py-2 rounded-full font-bold text-slate-500 hover:bg-slate-50">← 返回清單</button>
+               <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-2 rounded-full font-bold shadow-lg">🖨️ 列印講義</button>
+            </div>
+            <HandoutViewer content={handout} params={params} />
+            
+            <div className="mt-16 bg-orange-100 p-10 rounded-[4rem] text-center no-print">
+              <h3 className="text-3xl font-black text-orange-900 mb-4">學得差不多了嗎？</h3>
+              <p className="text-orange-700 font-bold mb-8">立刻為孩子生成一份專屬的隨堂練習卷！</p>
+              <button 
+                onClick={async () => {
+                   setLoading(true);
+                   try {
+                     const hw = await generateHomework(params, selectedUnit!.chapter, selectedUnit!.sub, { calculationCount: 3, wordProblemCount: 2, difficulty: '易' });
+                     setHomework(hw);
+                     setStep('homework');
+                   } finally {
+                     setLoading(false);
+                   }
+                }}
+                className="bg-orange-500 text-white px-10 py-5 rounded-full text-xl font-black shadow-xl hover:bg-orange-600 transition-all"
+              >
+                生成練習卷 ➜
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 'homework' && homework && (
+          <div className="page-transition">
+             <div className="mb-8 no-print flex gap-4">
+               <button onClick={() => setStep('handout')} className="bg-white border-2 border-slate-200 px-6 py-2 rounded-full font-bold text-slate-500 hover:bg-slate-50">← 返回講義</button>
+               <button onClick={() => window.print()} className="bg-slate-900 text-white px-8 py-2 rounded-full font-bold shadow-lg">🖨️ 列印考卷</button>
+            </div>
+            <HomeworkViewer content={homework} params={params} />
+          </div>
+        )}
+
+      </main>
+
+      {/* Footer info */}
+      <footer className="py-20 text-center text-slate-300 font-bold text-sm no-print">
+        ✨ 魔法助手專為資源班教師設計，祝您教學愉快 ✨
+      </footer>
     </div>
   );
 };
