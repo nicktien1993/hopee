@@ -8,6 +8,13 @@ import HomeworkConfigSection from './components/HomeworkConfigSection.tsx';
 import ManualUnitInput from './components/ManualUnitInput.tsx';
 
 const App: React.FC = () => {
+  // 一進入組件就嘗試關閉載入畫面
+  useEffect(() => {
+    if ((window as any).hideLoadingOverlay) {
+      (window as any).hideLoadingOverlay();
+    }
+  }, []);
+
   const [loading, setLoading] = useState(false);
   const [params, setParams] = useState<SelectionParams>({
     year: '114',
@@ -23,10 +30,8 @@ const App: React.FC = () => {
   const [error, setError] = useState<{msg: string, type: 'permission' | 'general'} | null>(null);
   const [viewMode, setViewMode] = useState<'library' | 'handout' | 'homework'>('library');
 
+  // 初始化緩存
   useEffect(() => {
-    if ((window as any).hideLoadingOverlay) {
-      (window as any).hideLoadingOverlay();
-    }
     const cached = localStorage.getItem('magic_handout_toc');
     if (cached) {
       try {
@@ -43,7 +48,7 @@ const App: React.FC = () => {
     const msg = err.message || "";
     if (msg.includes("permission denied") || msg.includes("403")) {
       setError({ 
-        msg: "金鑰權限不足以執行「雲端搜尋」功能。請嘗試使用下方的「手動輸入」功能，或是點擊上方按鈕重新設定正確的金鑰。", 
+        msg: "金鑰權限不足以執行「雲端搜尋」功能。請點擊上方按鈕更換金鑰，或使用下方「手動輸入」功能直接製作單一單元。", 
         type: 'permission' 
       });
     } else {
@@ -62,7 +67,7 @@ const App: React.FC = () => {
         localStorage.setItem('magic_handout_toc', JSON.stringify({ params: newParams, data }));
         setViewMode('library');
       } else {
-        setError({ msg: "找不到目錄，請改用下方的手動輸入功能。", type: 'general' });
+        setError({ msg: "找不到目錄，請嘗試手動輸入單元名稱。", type: 'general' });
       }
     } catch (err: any) {
       handleApiError(err);
@@ -148,9 +153,9 @@ const App: React.FC = () => {
               {error.type === 'permission' && (
                 <button 
                   onClick={() => (window as any).aistudio?.openSelectKey?.()}
-                  className="w-full py-2 bg-amber-600 text-white rounded-lg mt-2 shadow-sm"
+                  className="w-full py-2 bg-amber-600 text-white rounded-lg mt-2 shadow-sm font-black"
                 >
-                  前往選取正確金鑰
+                  更換金鑰
                 </button>
               )}
             </div>
@@ -163,20 +168,20 @@ const App: React.FC = () => {
               <div className="h-96 flex flex-col items-center justify-center text-center">
                 <div className="w-16 h-16 border-8 border-blue-50 border-t-blue-600 rounded-full animate-spin mb-6"></div>
                 <h2 className="text-2xl font-black text-slate-800">正在召喚數學魔法...</h2>
-                <p className="text-slate-400 mt-2 font-bold italic">這可能需要 10-20 秒，請稍候 🪄</p>
+                <p className="text-slate-400 mt-2 font-bold italic">這可能需要一點時間，請稍候 🪄</p>
               </div>
             ) : viewMode === 'library' ? (
               <div className="space-y-8">
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 rounded-[2.5rem] text-white shadow-xl mb-10">
-                  <h2 className="text-4xl font-black mb-2">教材地圖</h2>
-                  <p className="font-bold opacity-80">{params.year}學年度 • {params.publisher} • {params.grade}{params.semester}</p>
+                  <h2 className="text-4xl font-black mb-2 text-white">教材地圖</h2>
+                  <p className="font-bold opacity-80 text-white/80">{params.year}學年度 • {params.publisher} • {params.grade}{params.semester}</p>
                 </div>
 
                 {chapters.length > 0 ? (
                   <div className="magic-card-grid">
                     {chapters.map((chapter) => (
                       <div key={chapter.id} className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                        <span className="bg-blue-100 text-blue-700 font-black px-3 py-1 rounded-full text-[10px] mb-4 inline-block">單元 {chapter.id}</span>
+                        <span className="bg-blue-100 text-blue-700 font-black px-3 py-1 rounded-full text-[10px] mb-4 inline-block uppercase tracking-wider">單元 {chapter.id}</span>
                         <h3 className="text-xl font-black text-slate-800 mb-6 h-14 overflow-hidden leading-snug">{chapter.title}</h3>
                         <div className="space-y-2 border-t pt-4 border-slate-50">
                           {chapter.subChapters.map((sub, idx) => (
