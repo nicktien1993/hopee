@@ -4,33 +4,40 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>✨ 數字小魔手：資源班數學魔法屋</title>
-    <base href="./">
     <script>
-      // 1. 基本環境配置
+      // 1. 環境變數模擬
       window.process = { env: { API_KEY: "" } };
       
-      // 2. 系統診斷輔助
+      // 2. 系統診斷與日誌面板
       function logStatus(msg, isError = false) {
         console.log(`[System] ${msg}`);
         const debugDiv = document.getElementById('debug-log');
         if (debugDiv) {
           const p = document.createElement('div');
           p.style.color = isError ? '#be123c' : '#1e40af';
-          p.style.padding = '2px 0';
+          p.style.padding = '4px 0';
+          p.style.borderBottom = '1px solid #fee2e2';
           p.textContent = (isError ? '❌ ' : 'ℹ️ ') + msg;
           debugDiv.appendChild(p);
           if (isError) debugDiv.style.display = 'block';
         }
       }
 
+      // 監聽資源載入失敗 (404 或 MIME 類型錯誤)
       window.addEventListener('error', (e) => {
         if (e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK')) {
-          logStatus(`資源載入失敗: ${e.target.src || e.target.href}`, true);
+          const url = e.target.src || e.target.href;
+          logStatus(`檔案載入失敗：${url}`, true);
+          if (url && url.endsWith('.tsx')) {
+            logStatus("提示：這通常是因為伺服器無法處理 .tsx 檔案。請確保您是在支援 TypeScript 的開發環境（如 Vite）中執行，或使用編譯後的 .js 檔案。", true);
+          }
         }
       }, true);
 
-      window.onerror = (m, u, l) => logStatus(`JS 錯誤: ${m}`, true);
+      // 捕捉執行時期錯誤
+      window.onerror = (m, u, l) => logStatus(`腳本錯誤: ${m} (${u}:${l})`, true);
 
+      // 隱藏載入遮罩
       window.hideLoadingOverlay = function() {
         const overlay = document.getElementById('loading-overlay');
         if (overlay) {
@@ -46,7 +53,7 @@
       #loading-overlay { position: fixed; inset: 0; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; }
       .spinner { width: 50px; height: 50px; border: 5px solid #f3f4f6; border-top: 5px solid #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
       @keyframes spin { to { transform: rotate(360deg); } }
-      #debug-log { position: fixed; bottom: 0; left: 0; right: 0; background: #fff1f2; border-top: 2px solid #fda4af; padding: 12px; font-family: monospace; font-size: 11px; max-height: 150px; overflow-y: auto; z-index: 10000; display: none; }
+      #debug-log { position: fixed; bottom: 0; left: 0; right: 0; background: #fff1f2; border-top: 2px solid #fda4af; padding: 16px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; z-index: 10000; display: none; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); }
       @media print { .no-print { display: none !important; } }
     </style>
     <script type="importmap">
@@ -70,8 +77,9 @@
     </div>
     
     <div id="root"></div>
-    <div id="debug-log"><strong>🛠️ 系統診斷報告：</strong><br></div>
+    <div id="debug-log"><strong>🛠️ 系統診斷報告 (僅在錯誤時顯示)：</strong><br></div>
 
+    <!-- 使用相對路徑確保在不同網址下都能正確對應 -->
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>
